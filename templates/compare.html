@@ -6,63 +6,28 @@
     <title>Comparison: {{ user1 }} vs {{ user2 }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
+     <style>
         body { font-family: 'Inter', sans-serif; }
-        /* Style for the main content card */
         .stat-card { background-color: rgba(31, 41, 55, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(75, 85, 99, 0.5); }
-        /* Player header styling */
-        .player-header { text-align: center; margin-bottom: 1.5rem; min-height: 120px; /* Ensure consistent height */ display: flex; flex-direction: column; justify-content: flex-start;}
+        .player-header { text-align: center; margin-bottom: 1.5rem; min-height: 120px; display: flex; flex-direction: column; justify-content: flex-start;}
         .player-avatar { width: 64px; height: 64px; border-radius: 0.5rem; margin: 0 auto 0.75rem; border: 2px solid rgba(107, 114, 128, 0.5); display: block; image-rendering: pixelated; }
-        /* Gradient text style */
         .gradient-text { background-image: linear-gradient(to right, #a78bfa, #f472b6); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        /* Error and warning message styles */
-        .error-msg { font-size: 0.8rem; color: #ef4444; /* red-500 */ margin-top: 0.25rem; }
-        .warning-msg { font-size: 0.8rem; color: #f59e0b; /* amber-500 */ margin-top: 0.25rem; }
-        .player-name { word-break: break-all; } /* Prevent long names from breaking layout */
+        .error-msg { font-size: 0.8rem; color: #ef4444; margin-top: 0.25rem; }
+        .warning-msg { font-size: 0.8rem; color: #f59e0b; margin-top: 0.25rem; }
+        .player-name { word-break: break-all; }
 
-        /* Table-like Grid Styles for Comparison */
-        .compare-table-grid {
-            display: grid;
-            /* Columns: Stat Label, Player 1 Value, Player 2 Value, Difference */
-            grid-template-columns: 1.5fr 1fr 1fr 1fr;
-            gap: 0.5rem 1rem; /* Row gap, Column gap */
-            align-items: center;
-            border-bottom: 1px solid rgba(75, 85, 99, 0.4); /* Separator line */
-            padding: 0.75rem 0;
-        }
-        .compare-table-grid:last-child { border-bottom: none; } /* Remove bottom border for last row */
-        .compare-table-grid:first-of-type { border-top: 1px solid rgba(75, 85, 99, 0.4); margin-top: 1.5rem; } /* Add top border to first data row */
-
-        /* Column specific styles */
-        .stat-label-col { font-size: 0.9rem; color: #a78bfa; /* violet-300 */ font-weight: 500; text-align: left; padding-left: 0.5rem; }
+        .compare-table-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 0.5rem 1rem; align-items: center; border-bottom: 1px solid rgba(75, 85, 99, 0.4); padding: 0.75rem 0; }
+        .compare-table-grid:last-child { border-bottom: none; }
+        .compare-table-grid:first-of-type { border-top: 1px solid rgba(75, 85, 99, 0.4); margin-top: 1.5rem; }
+        .stat-label-col { font-size: 0.9rem; color: #a78bfa; font-weight: 500; text-align: left; padding-left: 0.5rem; }
         .stat-value-col { font-size: 1.05rem; font-weight: 600; text-align: center; }
         .stat-diff-col { font-size: 1.0rem; font-weight: 500; text-align: center; }
-
-        /* Difference coloring */
-        .diff-positive { color: #34d399; } /* emerald-400 */
-        .diff-negative { color: #f87171; } /* red-400 */
-        .diff-zero { color: #fbbf24; } /* amber-400 */
-        .diff-na { color: #6b7280; } /* gray-500 */
-
-        /* Header row for the comparison table */
-        .table-header-row {
-             display: grid;
-             grid-template-columns: 1.5fr 1fr 1fr 1fr; /* Match data grid columns */
-             gap: 0.5rem 1rem;
-             padding-bottom: 0.5rem;
-             margin-top: 1rem; /* Space below player headers */
-             font-weight: 600;
-             color: #9ca3af; /* gray-400 */
-             text-align: center;
-             font-size: 0.85rem;
-             text-transform: uppercase;
-             letter-spacing: 0.5px;
-        }
-        .table-header-row > div:first-child { text-align: left; padding-left: 0.5rem;} /* Align first header left */
-
+        .diff-positive { color: #34d399; } .diff-negative { color: #f87171; } .diff-zero { color: #fbbf24; } .diff-na { color: #6b7280; }
+        .table-header-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 0.5rem 1rem; padding-bottom: 0.5rem; margin-top: 1rem; font-weight: 600; color: #9ca3af; text-align: center; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .table-header-row > div:first-child { text-align: left; padding-left: 0.5rem;}
      </style>
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-purple-950 to-black text-gray-300 min-h-screen p-4 md:p-6">
@@ -81,7 +46,7 @@
 
         <div class="stat-card p-6 md:p-8 rounded-xl shadow-2xl">
             <div class="grid grid-cols-2 items-start gap-4">
-                <div class="player-header">
+                 <div class="player-header">
                     {% if stats1 and stats1.get('error') == 'name_changed' %}
                         <img src="https://crafatar.com/avatars/{{ stats1.uuid }}?size=64&overlay"
                              alt="Avatar {{ stats1.current_name }}" class="player-avatar opacity-70"
@@ -90,7 +55,7 @@
                         <p class="warning-msg">(Name changed to {{ stats1.current_name }})</p>
                          <a href="{{ url_for('player_stats_page', username=stats1.current_name) }}" class="text-xs text-purple-400 hover:underline mt-1">View {{ stats1.current_name }}'s Stats</a>
                     {% elif stats1 and stats1.get('error') %}
-                        <img src="https://placehold.co/64x64/4b5563/9ca3af?text=?" alt="Placeholder Avatar" class="player-avatar border-red-600">
+                         <img src="https://placehold.co/64x64/4b5563/9ca3af?text=?" alt="Placeholder Avatar" class="player-avatar border-red-600">
                          <h2 class="text-xl font-semibold text-red-400 player-name">{{ user1 }}</h2>
                          <p class="error-msg">({{ stats1.error }})</p>
                     {% elif stats1 %}
@@ -104,7 +69,7 @@
                          <p class="error-msg">(Error)</p>
                     {% endif %}
                 </div>
-                <div class="player-header">
+                 <div class="player-header">
                      {% if stats2 and stats2.get('error') == 'name_changed' %}
                         <img src="https://crafatar.com/avatars/{{ stats2.uuid }}?size=64&overlay"
                              alt="Avatar {{ stats2.current_name }}" class="player-avatar opacity-70"
@@ -127,7 +92,9 @@
                          <p class="error-msg">(Error)</p>
                     {% endif %}
                 </div>
-            </div><div class="table-header-row">
+            </div>
+
+            <div class="table-header-row">
                 <div>Statistic</div>
                 <div>{{ user1 }}</div>
                 <div>{{ user2 }}</div>
@@ -135,41 +102,36 @@
             </div>
 
             {% macro compare_stat_row(label, key, is_ratio=False) %}
-                {# Determine if data is valid for each player (no error or warning preventing stat display) #}
                 {% set data1_valid = stats1 and not stats1.get('error') %}
                 {% set data2_valid = stats2 and not stats2.get('error') %}
 
-                {# Get the raw values only if data is valid #}
                 {% set val1 = stats1.get(key) if data1_valid else None %}
                 {% set val2 = stats2.get(key) if data2_valid else None %}
 
-                {# Determine the display value (formatted or raw) #}
                 {% set val1_disp_key = key + '_formatted' if data1_valid and (key + '_formatted') in stats1 else key %}
                 {% set val2_disp_key = key + '_formatted' if data2_valid and (key + '_formatted') in stats2 else key %}
 
                 {% set val1_disp = stats1.get(val1_disp_key, 'N/A') if data1_valid else 'N/A' %}
                 {% set val2_disp = stats2.get(val2_disp_key, 'N/A') if data2_valid else 'N/A' %}
 
-                {# Apply specific formatting for ratios if needed #}
                 {% if is_ratio %}
                     {% set val1_disp = "{:,.2f}".format(val1) if val1 is not none else 'N/A' %}
                     {% set val2_disp = "{:,.2f}".format(val2) if val2 is not none else 'N/A' %}
                 {% endif %}
 
-                {# Calculate and format the difference #}
-                {% set diff = None %}
-                {% set diff_class = 'diff-na' %} {# Default class for difference column #}
-                {% set diff_disp = 'N/A' %} {# Default display text for difference #}
 
-                {# Calculate difference only if both values are valid numbers #}
+                {% set diff = None %}
+                {% set diff_class = 'diff-na' %}
+                {% set diff_disp = 'N/A' %}
+
                 {% if val1 is not none and val2 is not none %}
                     {% set diff = val1 - val2 %}
                     {% if diff > 0 %}
                         {% set diff_class = 'diff-positive' %}
-                        {% set diff_disp = "+{:,.2f}".format(diff) if is_ratio else "+{:,}".format(diff | int).replace(',', '.') %} {# Ensure int for format #}
+                        {% set diff_disp = "+{:,.2f}".format(diff) if is_ratio else "+{:,}".format(diff | int).replace(',', '.') %}
                     {% elif diff < 0 %}
                         {% set diff_class = 'diff-negative' %}
-                        {% set diff_disp = "{:,.2f}".format(diff) if is_ratio else "{:,}".format(diff | int).replace(',', '.') %} {# Ensure int for format #}
+                        {% set diff_disp = "{:,.2f}".format(diff) if is_ratio else "{:,}".format(diff | int).replace(',', '.') %}
                     {% else %}
                         {% set diff_class = 'diff-zero' %}
                         {% set diff_disp = "0" %}
@@ -198,7 +160,9 @@
             {{ compare_stat_row('Deaths', 'deaths') }}
             {{ compare_stat_row('KDR', 'kdr', is_ratio=True) }}
 
-        </div></div><footer class="text-center text-gray-600 mt-10 text-sm">
+        </div>
+    </div>
+     <footer class="text-center text-gray-600 mt-10 text-sm">
         Powered by Hypixel API & Flask.
     </footer>
 </body>
