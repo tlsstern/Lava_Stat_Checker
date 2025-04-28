@@ -9,7 +9,7 @@
      <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-      </head>
+     </head>
 <body class="bg-gradient-to-br from-gray-900 via-purple-950 to-black text-gray-300 min-h-screen p-4 md:p-6">
 
     <div class="container mx-auto max-w-5xl">
@@ -28,9 +28,7 @@
             <div class="grid grid-cols-2 items-start gap-4">
                  <div class="player-header">
                     {% if stats1 and stats1.get('error') == 'name_changed' %}
-                        <img src="https://crafatar.com/avatars/{{ stats1.uuid }}?size=64&overlay"
-                             alt="Avatar {{ stats1.current_name }}" class="player-avatar opacity-70"
-                              onerror="this.onerror=null; this.src='https://placehold.co/64x64/4b5563/9ca3af?text=?';">
+                        <img src="https://crafatar.com/avatars/{{ stats1.uuid }}?size=64&overlay" alt="Avatar {{ stats1.current_name }}" class="player-avatar opacity-70" onerror="this.onerror=null; this.src='https://placehold.co/64x64/4b5563/9ca3af?text=?';">
                         <h2 class="text-xl font-semibold text-yellow-400 player-name">{{ user1 }}</h2>
                         <p class="warning-msg">(Name changed to {{ stats1.current_name }})</p>
                          <a href="{{ url_for('player_stats_page', username=stats1.current_name) }}" class="text-xs text-purple-400 hover:underline mt-1">View {{ stats1.current_name }}'s Stats</a>
@@ -39,9 +37,7 @@
                          <h2 class="text-xl font-semibold text-red-400 player-name">{{ user1 }}</h2>
                          <p class="error-msg">({{ stats1.error }})</p>
                     {% elif stats1 %}
-                        <img src="https://crafatar.com/avatars/{{ stats1.uuid }}?size=64&overlay"
-                             alt="Avatar {{ stats1.username }}" class="player-avatar"
-                              onerror="this.onerror=null; this.src='https://placehold.co/64x64/374151/9ca3af?text=?';">
+                        <img src="https://crafatar.com/avatars/{{ stats1.uuid }}?size=64&overlay" alt="Avatar {{ stats1.username }}" class="player-avatar" onerror="this.onerror=null; this.src='https://placehold.co/64x64/374151/9ca3af?text=?';">
                         <h2 class="text-xl font-semibold text-purple-300 player-name">{{ stats1.username }}</h2>
                     {% else %}
                          <img src="https://placehold.co/64x64/4b5563/9ca3af?text=?" alt="Placeholder Avatar" class="player-avatar border-red-600">
@@ -51,9 +47,7 @@
                 </div>
                  <div class="player-header">
                      {% if stats2 and stats2.get('error') == 'name_changed' %}
-                        <img src="https://crafatar.com/avatars/{{ stats2.uuid }}?size=64&overlay"
-                             alt="Avatar {{ stats2.current_name }}" class="player-avatar opacity-70"
-                              onerror="this.onerror=null; this.src='https://placehold.co/64x64/4b5563/9ca3af?text=?';">
+                        <img src="https://crafatar.com/avatars/{{ stats2.uuid }}?size=64&overlay" alt="Avatar {{ stats2.current_name }}" class="player-avatar opacity-70" onerror="this.onerror=null; this.src='https://placehold.co/64x64/4b5563/9ca3af?text=?';">
                         <h2 class="text-xl font-semibold text-yellow-400 player-name">{{ user2 }}</h2>
                         <p class="warning-msg">(Name changed to {{ stats2.current_name }})</p>
                          <a href="{{ url_for('player_stats_page', username=stats2.current_name) }}" class="text-xs text-purple-400 hover:underline mt-1">View {{ stats2.current_name }}'s Stats</a>
@@ -62,9 +56,7 @@
                         <h2 class="text-xl font-semibold text-red-400 player-name">{{ user2 }}</h2>
                          <p class="error-msg">({{ stats2.error }})</p>
                     {% elif stats2 %}
-                        <img src="https://crafatar.com/avatars/{{ stats2.uuid }}?size=64&overlay"
-                             alt="Avatar {{ stats2.username }}" class="player-avatar"
-                              onerror="this.onerror=null; this.src='https://placehold.co/64x64/374151/9ca3af?text=?';">
+                        <img src="https://crafatar.com/avatars/{{ stats2.uuid }}?size=64&overlay" alt="Avatar {{ stats2.username }}" class="player-avatar" onerror="this.onerror=null; this.src='https://placehold.co/64x64/374151/9ca3af?text=?';">
                         <h2 class="text-xl font-semibold text-pink-400 player-name">{{ stats2.username }}</h2>
                      {% else %}
                          <img src="https://placehold.co/64x64/4b5563/9ca3af?text=?" alt="Placeholder Avatar" class="player-avatar border-red-600">
@@ -74,6 +66,15 @@
                 </div>
             </div>
 
+            <div id="mode-selector" class="flex flex-wrap justify-center gap-2 my-6 border-b border-gray-700 pb-4">
+                <button data-mode="overall" class="mode-button active">Overall</button>
+                <button data-mode="solos" class="mode-button">Solos</button>
+                <button data-mode="doubles" class="mode-button">Doubles</button>
+                <button data-mode="threes" class="mode-button">Threes</button>
+                <button data-mode="fours" class="mode-button">Fours</button>
+                <button data-mode="4v4" class="mode-button">4v4</button>
+            </div>
+
             <div class="table-header-row">
                 <div>Statistic</div>
                 <div>{{ user1 }}</div>
@@ -81,29 +82,22 @@
                 <div>Difference</div>
             </div>
 
-            {% macro compare_stat_row(label, key, is_ratio=False) %}
-                {% set data1_valid = stats1 and not stats1.get('error') %}
-                {% set data2_valid = stats2 and not stats2.get('error') %}
-
-                {% set val1 = stats1.get(key) if data1_valid else None %}
-                {% set val2 = stats2.get(key) if data2_valid else None %}
-
-                {% set val1_disp_key = key + '_formatted' if data1_valid and (key + '_formatted') in stats1 else key %}
-                {% set val2_disp_key = key + '_formatted' if data2_valid and (key + '_formatted') in stats2 else key %}
-
-                {% set val1_disp = stats1.get(val1_disp_key, 'N/A') if data1_valid else 'N/A' %}
-                {% set val2_disp = stats2.get(val2_disp_key, 'N/A') if data2_valid else 'N/A' %}
-
+            {% macro compare_stat_row(label, data1, data2, key, is_ratio=False, use_formatted=False) %}
+                {% set data1_valid = data1 and not data1.get('error') %}
+                {% set data2_valid = data2 and not data2.get('error') %}
+                {% set val1 = data1.get(key) if data1_valid else None %}
+                {% set val2 = data2.get(key) if data2_valid else None %}
+                {% set val1_disp_key = key + '_formatted' if use_formatted and data1_valid and (key + '_formatted') in data1 else key %}
+                {% set val2_disp_key = key + '_formatted' if use_formatted and data2_valid and (key + '_formatted') in data2 else key %}
+                {% set val1_disp = data1.get(val1_disp_key, 'N/A') if data1_valid else 'N/A' %}
+                {% set val2_disp = data2.get(val2_disp_key, 'N/A') if data2_valid else 'N/A' %}
                 {% if is_ratio %}
                     {% set val1_disp = "{:,.2f}".format(val1) if val1 is not none else 'N/A' %}
                     {% set val2_disp = "{:,.2f}".format(val2) if val2 is not none else 'N/A' %}
                 {% endif %}
-
-
                 {% set diff = None %}
                 {% set diff_class = 'diff-na' %}
                 {% set diff_disp = 'N/A' %}
-
                 {% if val1 is not none and val2 is not none %}
                     {% set diff = val1 - val2 %}
                     {% if diff > 0 %}
@@ -117,7 +111,6 @@
                         {% set diff_disp = "0" %}
                     {% endif %}
                 {% endif %}
-
                 <div class="compare-table-grid">
                     <div class="stat-label-col">{{ label }}</div>
                     <div class="stat-value-col {{ 'text-gray-500' if not data1_valid else 'text-purple-300' }}">{{ val1_disp }}</div>
@@ -126,23 +119,43 @@
                 </div>
             {% endmacro %}
 
-            {{ compare_stat_row('Level', 'level') }}
-            {{ compare_stat_row('Wins', 'wins') }}
-            {{ compare_stat_row('Losses', 'losses') }}
-            {{ compare_stat_row('W/L Ratio', 'wlr', is_ratio=True) }}
-            {{ compare_stat_row('Final Kills', 'final_kills') }}
-            {{ compare_stat_row('Final Deaths', 'final_deaths') }}
-            {{ compare_stat_row('FKDR', 'fkdr', is_ratio=True) }}
-            {{ compare_stat_row('Beds Broken', 'beds_broken') }}
-            {{ compare_stat_row('Beds Lost', 'beds_lost') }}
-            {{ compare_stat_row('BBLR', 'bblr', is_ratio=True) }}
-            {{ compare_stat_row('Kills', 'kills') }}
-            {{ compare_stat_row('Deaths', 'deaths') }}
-            {{ compare_stat_row('KDR', 'kdr', is_ratio=True) }}
+            <div id="stats-container">
+                <div class="mode-stats-section" id="mode-overall">
+                    {{ compare_stat_row('Level', stats1, stats2, 'level') }}
+                    {{ compare_stat_row('Wins', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'wins', use_formatted=True) }}
+                    {{ compare_stat_row('Losses', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'losses', use_formatted=True) }}
+                    {{ compare_stat_row('W/L Ratio', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'wlr', is_ratio=True) }}
+                    {{ compare_stat_row('Final Kills', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'final_kills', use_formatted=True) }}
+                    {{ compare_stat_row('Final Deaths', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'final_deaths', use_formatted=True) }}
+                    {{ compare_stat_row('FKDR', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'fkdr', is_ratio=True) }}
+                    {{ compare_stat_row('Beds Broken', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'beds_broken', use_formatted=True) }}
+                    {{ compare_stat_row('Beds Lost', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'beds_lost', use_formatted=True) }}
+                    {{ compare_stat_row('BBLR', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'bblr', is_ratio=True) }}
+                    {{ compare_stat_row('Kills', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'kills', use_formatted=True) }}
+                    {{ compare_stat_row('Deaths', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'deaths', use_formatted=True) }}
+                    {{ compare_stat_row('KDR', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'kdr', is_ratio=True) }}
+                </div>
 
-        </div>
-    </div>
-     <footer class="text-center text-gray-600 mt-10 text-sm">
+                {% set mode_keys = ['solos', 'doubles', 'threes', 'fours', '4v4'] %}
+                {% for mode_key in mode_keys %}
+                    <div class="mode-stats-section hidden" id="mode-{{ mode_key }}">
+                        {% set mode_data1 = stats1.modes.get(mode_key) if stats1 and stats1.modes else None %}
+                        {% set mode_data2 = stats2.modes.get(mode_key) if stats2 and stats2.modes else None %}
+                        {{ compare_stat_row('Wins', mode_data1, mode_data2, 'wins', use_formatted=True) }}
+                        {{ compare_stat_row('Losses', mode_data1, mode_data2, 'losses', use_formatted=True) }}
+                        {{ compare_stat_row('W/L Ratio', mode_data1, mode_data2, 'wlr', is_ratio=True) }}
+                        {{ compare_stat_row('Final Kills', mode_data1, mode_data2, 'final_kills', use_formatted=True) }}
+                        {{ compare_stat_row('Final Deaths', mode_data1, mode_data2, 'final_deaths', use_formatted=True) }}
+                        {{ compare_stat_row('FKDR', mode_data1, mode_data2, 'fkdr', is_ratio=True) }}
+                        {{ compare_stat_row('Beds Broken', mode_data1, mode_data2, 'beds_broken', use_formatted=True) }}
+                        {{ compare_stat_row('Beds Lost', mode_data1, mode_data2, 'beds_lost', use_formatted=True) }}
+                        {{ compare_stat_row('BBLR', mode_data1, mode_data2, 'bblr', is_ratio=True) }}
+                        {{ compare_stat_row('Kills', mode_data1, mode_data2, 'kills', use_formatted=True) }}
+                        {{ compare_stat_row('Deaths', mode_data1, mode_data2, 'deaths', use_formatted=True) }}
+                        {{ compare_stat_row('KDR', mode_data1, mode_data2, 'kdr', is_ratio=True) }}
+                    </div>
+                {% endfor %}
+            </div> </div> </div> <footer class="text-center text-gray-600 mt-10 text-sm">
         Powered by Hypixel API & Flask.
     </footer>
      <script src="{{ url_for('static', filename='js/main.js') }}"></script>
