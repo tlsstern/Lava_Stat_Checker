@@ -1,0 +1,24 @@
+/* static/css/style.css */
+/* Globale Stile oder Tailwind @layer-Anweisungen können hier hinzugefügt werden. */
+/* Für dieses Beispiel verwenden wir hauptsächlich Tailwind-Klassen direkt im HTML. */
+/* Stelle sicher, dass Tailwind über CDN oder als Build-Schritt eingebunden ist. */
+
+/* Beispiel: Einen benutzerdefinierten Scrollbar hinzufügen (optional) */
+::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #1f2937; /* gray-800 */
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background-color: #4b5563; /* gray-600 */
+    border-radius: 10px;
+    border: 2px solid #1f2937; /* gray-800 */
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #6b7280; /* gray-500 */
+  }
+  

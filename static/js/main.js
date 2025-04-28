@@ -1,0 +1,1 @@
+console.log("main.js geladen. Keine dynamischen Aktionen implementiert.");
