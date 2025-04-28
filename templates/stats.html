@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stats für {{ username }}</title>
+    <title>Stats{% if stats %} for {{ stats.username }}{% elif original_search %} for {{ original_search }}{% else %} Player Search{% endif %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,22 +11,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
+        /* Style for the main content card */
         .stat-card { background-color: rgba(31, 41, 55, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(75, 85, 99, 0.5); }
-        /* Changed stat-grid to explicitly use 3 columns */
+        /* Grid layout for stats */
         .stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+        /* Individual stat item styling */
         .stat-item { background-color: rgba(55, 65, 81, 0.7); padding: 1rem; border-radius: 0.75rem; text-align: center; border: 1px solid rgba(75, 85, 99, 0.6); transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .stat-item:hover { transform: translateY(-3px); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
+        /* Stat label (e.g., "Wins") */
         .stat-label { font-size: 0.85rem; color: #a78bfa; /* violet-300 */ margin-bottom: 0.3rem; display: block; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;}
+        /* Stat value (e.g., "1,234") */
         .stat-value { font-size: 1.6rem; font-weight: 700; color: #f5d0fe; /* fuchsia-200 */}
+        /* Gradient text style */
         .gradient-text { background-image: linear-gradient(to right, #a78bfa, #f472b6); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .avatar-img { image-rendering: pixelated; /* Schärfere Pixel-Avatare */ }
-        /* Ensure grid items don't get too small on very narrow screens */
-        @media (max-width: 480px) {
-            .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } /* Switch to 2 columns on small screens */
-        }
-         @media (max-width: 360px) {
-            .stat-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); } /* Switch to 1 column on very small screens */
-        }
+        /* Ensure pixelated rendering for Minecraft avatars */
+        .avatar-img { image-rendering: pixelated; }
+        /* Styling for info/error boxes */
+        .info-box { border-left-width: 4px; padding: 1rem; border-radius: 0.375rem; margin-bottom: 1.5rem; }
+        .info-box-yellow { border-color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); color: #fcd34d; } /* amber */
+        .info-box-red { border-color: #ef4444; background-color: rgba(239, 68, 68, 0.1); color: #fca5a5; } /* red */
+
+        /* Responsive adjustments for the grid */
+        @media (max-width: 480px) { .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } } /* 2 columns on small screens */
+        @media (max-width: 360px) { .stat-grid { grid-template-columns: repeat(1, minmax(0, 1fr)); } } /* 1 column on very small screens */
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-purple-950 to-black text-gray-300 min-h-screen p-4 md:p-6">
@@ -36,24 +43,36 @@
              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
-            Zurück zur Suche
+            Back to Search
         </a>
 
-        {% if error %}
-            <div class="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded-lg relative mb-6 shadow-lg" role="alert">
-                <strong class="font-bold block mb-1">Fehler!</strong>
+        {% if error_type == 'name_changed' %}
+            <div class="info-box info-box-yellow" role="alert">
+                <strong class="font-bold block mb-1">Notice: Name Changed!</strong>
+                <p>The searched name <strong class="font-semibold">{{ original_search }}</strong> is not the current name for this account.</p>
+                <p>The account now belongs to <strong class="font-semibold">{{ current_name }}</strong>.</p>
+                <p class="mt-2 text-sm">Would you like to search for <a href="{{ url_for('player_stats_page', username=current_name) }}" class="font-semibold underline hover:text-amber-300">{{ current_name }}</a> instead?</p>
+                </div>
+        {% elif error %}
+            <div class="info-box info-box-red" role="alert">
+                <strong class="font-bold block mb-1">Error!</strong>
                 <span class="block sm:inline">{{ error }}</span>
+                 {% if username %}
+                 <p class="text-sm mt-1">Searched for: {{ username }}</p>
+                 {% endif %}
             </div>
         {% elif stats %}
             <div class="stat-card p-6 md:p-8 rounded-xl shadow-2xl mb-8">
                  <div class="flex flex-col sm:flex-row items-center justify-center sm:justify-start text-center sm:text-left mb-8 gap-4">
                      <img src="https://crafatar.com/avatars/{{ stats.uuid }}?size=80&overlay"
-                          alt="Avatar von {{ stats.username }}"
+                          alt="Avatar of {{ stats.username }}"
                           class="rounded-lg w-20 h-20 border-2 border-purple-600 shadow-md avatar-img"
-                          onerror="this.onerror=null; this.src='https://placehold.co/80x80/374151/9ca3af?text=?';">
-                     <div>
+                          onerror="this.onerror=null; this.src='https://placehold.co/80x80/374151/9ca3af?text=?';"> <div>
                         <h1 class="text-3xl md:text-4xl font-bold gradient-text">{{ stats.username }}</h1>
                         <p class="text-purple-300 text-lg">Bedwars Level: <span class="font-semibold">{{ stats.level }}</span></p>
+                        {% if stats.original_search and stats.username.lower() != stats.original_search.lower() %}
+                           <p class="text-xs text-yellow-400">(Searched for: {{ stats.original_search }})</p>
+                        {% endif %}
                      </div>
                  </div>
 
@@ -70,7 +89,6 @@
                         <span class="stat-label">W/L Ratio</span>
                         <span class="stat-value">{{ stats.wlr }}</span>
                     </div>
-
                     <div class="stat-item">
                         <span class="stat-label">Final Kills</span>
                         <span class="stat-value">{{ stats.final_kills_formatted }}</span>
@@ -83,7 +101,6 @@
                         <span class="stat-label">FKDR</span>
                         <span class="stat-value">{{ stats.fkdr }}</span>
                     </div>
-
                      <div class="stat-item">
                         <span class="stat-label">Beds Broken</span>
                         <span class="stat-value">{{ stats.beds_broken_formatted }}</span>
@@ -96,7 +113,6 @@
                         <span class="stat-label">BBLR</span>
                         <span class="stat-value">{{ stats.bblr }}</span>
                     </div>
-
                      <div class="stat-item">
                         <span class="stat-label">Kills</span>
                         <span class="stat-value">{{ stats.kills_formatted }}</span>
@@ -109,17 +125,14 @@
                         <span class="stat-label">KDR</span>
                         <span class="stat-value">{{ stats.kdr }}</span>
                     </div>
-                </div>
-            </div>
-        {% else %}
-             <div class="bg-yellow-900 border border-yellow-700 text-yellow-200 px-4 py-3 rounded-lg relative mb-6 shadow-lg" role="alert">
+                </div></div>{% else %}
+             <div class="info-box info-box-yellow" role="alert">
                 <strong class="font-bold block mb-1">Info:</strong>
-                <span class="block sm:inline">Keine Statistiken für {{ username }} gefunden oder abrufbar.</span>
+                <span class="block sm:inline">No statistics found or available for {{ username }}.</span>
             </div>
         {% endif %}
 
-    </div>
-     <footer class="text-center text-gray-600 mt-10 text-sm">
+    </div><footer class="text-center text-gray-600 mt-10 text-sm">
         Powered by Hypixel API & Flask.
     </footer>
 </body>
