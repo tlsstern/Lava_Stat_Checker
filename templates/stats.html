@@ -45,16 +45,26 @@
                      <div>
                         <h1 class="text-3xl md:text-4xl font-bold gradient-text">{{ stats.username }}</h1>
                         <p class="text-purple-300 text-lg">Bedwars Level: <span class="font-semibold">{{ stats.level }}</span></p>
+                        {% if stats.most_played_gamemode and stats.most_played_gamemode != 'N/A' %}
+                        <p class="text-purple-300 text-md mt-1">Most Played: <span class="font-semibold">{{ stats.most_played_gamemode }}</span></p>
+                        {% endif %}
                      </div>
                  </div>
 
                  <div id="stats-mode-selector" class="flex flex-wrap justify-center gap-2 mb-6 border-b border-gray-700 pb-4">
                     <button data-mode="overall" class="mode-button active">Overall</button>
+                    <button data-mode="core" class="mode-button">Core</button>
                     <button data-mode="solos" class="mode-button">Solos</button>
                     <button data-mode="doubles" class="mode-button">Doubles</button>
                     <button data-mode="threes" class="mode-button">Threes</button>
                     <button data-mode="fours" class="mode-button">Fours</button>
                     <button data-mode="4v4" class="mode-button">4v4</button>
+                 </div>
+
+                 <div class="text-center mb-6">
+                     <button id="nerd-mode-toggle" class="nerd-toggle-button">
+                         Show Nerd Stats
+                     </button>
                  </div>
 
                  <div id="stats-sections-container">
@@ -75,16 +85,29 @@
                             <div class="stat-item"> <span class="stat-label">Deaths</span> <span class="stat-value">{{ stats.overall.deaths_formatted }}</span> </div>
                             <div class="stat-item"> <span class="stat-label">KDR</span> <span class="stat-value">{{ stats.overall.kdr }}</span> </div>
                          </div>
+                         <div id="nerd-stats-overall" class="nerd-stats-section hidden mt-6 pt-4 border-t border-gray-700">
+                             <h3 class="text-xl font-semibold mb-3 text-center text-purple-400">Overall Nerd Stats</h3>
+                             <div class="stat-grid">
+                                 <div class="stat-item"> <span class="stat-label">Win Rate</span> <span class="stat-value">{{ stats.overall.win_rate }}%</span> </div>
+                                 <div class="stat-item"> <span class="stat-label">Finals / Star</span> <span class="stat-value">{{ stats.overall.finals_per_star }}</span> </div>
+                                 <div class="stat-item"> <span class="stat-label">Finals / Game</span> <span class="stat-value">{{ stats.overall.finals_per_game }}</span> </div>
+                                 <div class="stat-item"> <span class="stat-label">Games Played</span> <span class="stat-value">{{ stats.overall.games_played_formatted }}</span> </div>
+                                 <div class="stat-item"> <span class="stat-label">Coins</span> <span class="stat-value">{{ stats.overall.coins_formatted }}</span> </div>
+                                 <div class="stat-item"> <span class="stat-label">Slumber Tickets</span> <span class="stat-value">{{ stats.overall.bedwars_slumber_ticket_master_formatted }}</span> </div>
+                             </div>
+                         </div>
                          {% else %}
                          <p class="text-gray-400 text-center">Overall stats not available.</p>
                          {% endif %}
                      </div>
 
                      {% if stats.modes %}
-                         {% set mode_titles = {'solos': 'Solos', 'doubles': 'Doubles', 'threes': 'Threes', 'fours': 'Fours', '4v4': '4v4'} %}
-                         {% for mode_key, mode_data in stats.modes.items() %}
+                         {% set mode_titles = {'core': 'Core (1s+2s+3s+4s)', 'solos': 'Solos', 'doubles': 'Doubles', 'threes': 'Threes', 'fours': 'Fours', '4v4': '4v4'} %}
+                         {% for mode_key, mode_title in mode_titles.items() %}
+                         {% set mode_data = stats.modes.get(mode_key) %}
                          <div class="mode-stats-section hidden" id="stats-{{ mode_key }}">
-                             <h2 class="text-2xl font-semibold mb-4 text-center text-pink-400">{{ mode_titles.get(mode_key, mode_key|capitalize) }} Stats</h2>
+                             <h2 class="text-2xl font-semibold mb-4 text-center text-pink-400">{{ mode_title }} Stats</h2>
+                             {% if mode_data %}
                              <div class="stat-grid">
                                  <div class="stat-item"> <span class="stat-label">Wins</span> <span class="stat-value">{{ mode_data.wins_formatted }}</span> </div>
                                  <div class="stat-item"> <span class="stat-label">Losses</span> <span class="stat-value">{{ mode_data.losses_formatted }}</span> </div>
@@ -99,18 +122,32 @@
                                  <div class="stat-item"> <span class="stat-label">Deaths</span> <span class="stat-value">{{ mode_data.deaths_formatted }}</span> </div>
                                  <div class="stat-item"> <span class="stat-label">KDR</span> <span class="stat-value">{{ mode_data.kdr }}</span> </div>
                              </div>
+                              <div id="nerd-stats-{{ mode_key }}" class="nerd-stats-section hidden mt-6 pt-4 border-t border-gray-700">
+                                 <h3 class="text-xl font-semibold mb-3 text-center text-pink-500">{{ mode_title }} Nerd Stats</h3>
+                                 <div class="stat-grid">
+                                     <div class="stat-item"> <span class="stat-label">Win Rate</span> <span class="stat-value">{{ mode_data.win_rate }}%</span> </div>
+                                     <div class="stat-item"> <span class="stat-label">Finals / Game</span> <span class="stat-value">{{ mode_data.finals_per_game }}</span> </div>
+                                     <div class="stat-item"> <span class="stat-label">Games Played</span> <span class="stat-value">{{ mode_data.games_played_formatted }}</span> </div>
+                                 </div>
+                             </div>
+                             {% else %}
+                              <p class="text-gray-400 text-center">{{ mode_title }} stats not available.</p>
+                             {% endif %}
                          </div>
                          {% endfor %}
                      {% endif %}
-                 </div> </div> {% else %}
+                 </div>
+            </div>
+        {% else %}
              <div class="info-box info-box-yellow" role="alert">
                 <strong class="font-bold block mb-1">Info:</strong>
                 <span class="block sm:inline">No statistics found or available for {{ username }}.</span>
             </div>
         {% endif %}
 
-    </div> <footer class="text-center text-gray-600 mt-10 text-sm">
-        Powered by Hypixel API & Flask.
+    </div>
+     <footer class="text-center text-gray-600 mt-10 text-sm">
+        Created By @lava_999
     </footer>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>

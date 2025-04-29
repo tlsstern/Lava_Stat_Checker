@@ -12,14 +12,26 @@ if not os.path.exists('static/js'): os.makedirs('static/js')
 if not os.path.exists('templates'): os.makedirs('templates')
 
 def format_stat_section(section_data):
-    """Adds formatted number strings to a stats dictionary (e.g., overall or a specific mode)."""
     if not section_data:
         return section_data
-    for key in ['wins', 'losses', 'final_kills', 'final_deaths', 'beds_broken', 'beds_lost', 'kills', 'deaths']:
-        if key in section_data and isinstance(section_data[key], (int, float)):
-            section_data[f'{key}_formatted'] = "{:,}".format(section_data[key]).replace(',', '.')
+    # Format standard large numbers (using apostrophe as separator)
+    for key in ['wins', 'losses', 'final_kills', 'final_deaths', 'beds_broken', 'beds_lost', 'kills', 'deaths', 'coins', 'games_played']:
+        value = section_data.get(key)
+        if value is not None and isinstance(value, (int, float)):
+            # Replace comma with apostrophe
+            section_data[f'{key}_formatted'] = "{:,}".format(value).replace(',', "'")
         else:
             section_data[f'{key}_formatted'] = section_data.get(key, 'N/A')
+
+    # Explicitly handle slumber_tickets formatting for None case using the correct key
+    slumber_key = 'bedwars_slumber_ticket_master'
+    slumber_value = section_data.get(slumber_key)
+    if slumber_value is not None and isinstance(slumber_value, (int, float)):
+         # Replace comma with apostrophe
+        section_data[f'{slumber_key}_formatted'] = "{:,}".format(slumber_value).replace(',', "'")
+    else:
+        section_data[f'{slumber_key}_formatted'] = 'N/A'
+
     return section_data
 
 @app.route('/')
@@ -46,10 +58,8 @@ def player_stats_page():
                                    error=result_data.get('error'),
                                    username=result_data.get('original_search', username))
     elif result_data:
-         # Format overall stats
          if 'overall' in result_data:
              result_data['overall'] = format_stat_section(result_data['overall'])
-         # Format mode stats
          if 'modes' in result_data:
              for mode_key, mode_data in result_data['modes'].items():
                  result_data['modes'][mode_key] = format_stat_section(mode_data)
@@ -72,7 +82,6 @@ def compare_stats_page():
     stats1_result = stats_dict_results.get(user1_orig.lower())
     stats2_result = stats_dict_results.get(user2_orig.lower())
 
-    # Format stats for both players, including nested modes
     def format_stats_for_compare(stats_data):
         if stats_data and not stats_data.get('error'):
             if 'overall' in stats_data:

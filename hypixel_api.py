@@ -51,7 +51,7 @@ def get_player_uuid_by_current_name(username: str):
                  if data_hypixel["player"].get("displayname", "").lower() == username.lower():
                      return data_hypixel["player"].get("uuid")
                  else:
-                     return None
+                    return None
             else:
                  return None
         else:
@@ -60,10 +60,10 @@ def get_player_uuid_by_current_name(username: str):
              return None
     except requests.exceptions.RequestException as e:
         print(f"Hypixel API name lookup error for {username}: {e}")
-        return None
     except Exception as e:
         print(f"Error processing Hypixel name lookup for {username}: {e}")
-        return None
+
+    return None
 
 def get_uuid_by_historical_name(username: str):
     try:
@@ -76,16 +76,15 @@ def get_uuid_by_historical_name(username: str):
             current_name = data_hypixel["player"].get("displayname", "")
             return uuid, current_name
         else:
-            return None, None
+             return None, None
     except requests.exceptions.RequestException as e:
         print(f"Hypixel API historical lookup error for {username}: {e}")
-        return None, None
     except Exception as e:
         print(f"Error processing Hypixel historical lookup for {username}: {e}")
-        return None, None
+
+    return None, None
 
 def calculate_mode_stats(bw_stats, prefix):
-    """Helper function to calculate stats for a specific mode."""
     wins = bw_stats.get(f"{prefix}wins_bedwars", 0)
     losses = bw_stats.get(f"{prefix}losses_bedwars", 0)
     final_kills = bw_stats.get(f"{prefix}final_kills_bedwars", 0)
@@ -95,14 +94,17 @@ def calculate_mode_stats(bw_stats, prefix):
     kills = bw_stats.get(f"{prefix}kills_bedwars", 0)
     deaths = bw_stats.get(f"{prefix}deaths_bedwars", 0)
 
+    games_played = wins + losses
     wlr = round(wins / losses, 2) if losses else 0
     fkdr = round(final_kills / final_deaths, 2) if final_deaths else 0
     bblr = round(beds_broken / beds_lost, 2) if beds_lost else 0
     kdr = round(kills / deaths, 2) if deaths else 0
+    win_rate = round((wins / games_played) * 100, 2) if games_played > 0 else 0
+    finals_per_game = round(final_kills / games_played, 2) if games_played > 0 else 0
 
     return {
-        "wins": wins, "losses": losses, "wlr": wlr,
-        "final_kills": final_kills, "final_deaths": final_deaths, "fkdr": fkdr,
+        "wins": wins, "losses": losses, "wlr": wlr, "win_rate": win_rate, "games_played": games_played,
+        "final_kills": final_kills, "final_deaths": final_deaths, "fkdr": fkdr, "finals_per_game": finals_per_game,
         "beds_broken": beds_broken, "beds_lost": beds_lost, "bblr": bblr,
         "kills": kills, "deaths": deaths, "kdr": kdr,
     }
@@ -124,9 +126,12 @@ def get_player_stats_by_uuid(uuid: str):
         player_data = data["player"]
         stats = player_data.get("stats", {})
         bw_stats = stats.get("Bedwars", {})
-        exp = bw_stats.get("Experience", 0)
+        # Also get achievements data if available for the ticket master field
+        achievements = player_data.get("achievements", {})
 
-        # Overall stats (already calculated mostly)
+        exp = bw_stats.get("Experience", 0)
+        level = math.floor(get_bedwars_level(exp))
+
         overall_wins = bw_stats.get("wins_bedwars", 0)
         overall_losses = bw_stats.get("losses_bedwars", 0)
         overall_final_kills = bw_stats.get("final_kills_bedwars", 0)
@@ -135,33 +140,76 @@ def get_player_stats_by_uuid(uuid: str):
         overall_beds_lost = bw_stats.get("beds_lost_bedwars", 0)
         overall_kills = bw_stats.get("kills_bedwars", 0)
         overall_deaths = bw_stats.get("deaths_bedwars", 0)
+        coins = bw_stats.get("coins", 0)
+        slumber_tickets = achievements.get("bedwars_slumber_ticket_master")
 
+        overall_games_played = overall_wins + overall_losses
         overall_wlr = round(overall_wins / overall_losses, 2) if overall_losses else 0
         overall_fkdr = round(overall_final_kills / overall_final_deaths, 2) if overall_final_deaths else 0
         overall_bblr = round(overall_beds_broken / overall_beds_lost, 2) if overall_beds_lost else 0
         overall_kdr = round(overall_kills / overall_deaths, 2) if overall_deaths else 0
+        overall_win_rate = round((overall_wins / overall_games_played) * 100, 2) if overall_games_played > 0 else 0
+        overall_finals_per_star = round(overall_final_kills / level, 2) if level > 0 else 0
+        overall_finals_per_game = round(overall_final_kills / overall_games_played, 2) if overall_games_played > 0 else 0
 
-        # Mode specific stats
         modes_data = {
             "solos": calculate_mode_stats(bw_stats, "eight_one_"),
             "doubles": calculate_mode_stats(bw_stats, "eight_two_"),
             "threes": calculate_mode_stats(bw_stats, "four_three_"),
             "fours": calculate_mode_stats(bw_stats, "four_four_"),
-            "4v4": calculate_mode_stats(bw_stats, "two_four_") # Assuming 'two_four_' is 4v4
+            "4v4": calculate_mode_stats(bw_stats, "two_four_")
         }
+
+        core_modes = ["solos", "doubles", "threes", "fours"]
+        core_wins = sum(modes_data[m]["wins"] for m in core_modes if m in modes_data)
+        core_losses = sum(modes_data[m]["losses"] for m in core_modes if m in modes_data)
+        core_final_kills = sum(modes_data[m]["final_kills"] for m in core_modes if m in modes_data)
+        core_final_deaths = sum(modes_data[m]["final_deaths"] for m in core_modes if m in modes_data)
+        core_beds_broken = sum(modes_data[m]["beds_broken"] for m in core_modes if m in modes_data)
+        core_beds_lost = sum(modes_data[m]["beds_lost"] for m in core_modes if m in modes_data)
+        core_kills = sum(modes_data[m]["kills"] for m in core_modes if m in modes_data)
+        core_deaths = sum(modes_data[m]["deaths"] for m in core_modes if m in modes_data)
+        core_games_played = core_wins + core_losses
+
+        core_wlr = round(core_wins / core_losses, 2) if core_losses else 0
+        core_fkdr = round(core_final_kills / core_final_deaths, 2) if core_final_deaths else 0
+        core_bblr = round(core_beds_broken / core_beds_lost, 2) if core_beds_lost else 0
+        core_kdr = round(core_kills / core_deaths, 2) if core_deaths else 0
+        core_win_rate = round((core_wins / core_games_played) * 100, 2) if core_games_played > 0 else 0
+        core_finals_per_game = round(core_final_kills / core_games_played, 2) if core_games_played > 0 else 0
+
+        modes_data['core'] = {
+            "wins": core_wins, "losses": core_losses, "wlr": core_wlr, "win_rate": core_win_rate, "games_played": core_games_played,
+            "final_kills": core_final_kills, "final_deaths": core_final_deaths, "fkdr": core_fkdr, "finals_per_game": core_finals_per_game,
+            "beds_broken": core_beds_broken, "beds_lost": core_beds_lost, "bblr": core_bblr,
+            "kills": core_kills, "deaths": core_deaths, "kdr": core_kdr,
+        }
+
+        most_played_gamemode = "N/A"
+        max_games = -1
+        all_mode_titles = {'solos': 'Solos', 'doubles': 'Doubles', 'threes': 'Threes', 'fours': 'Fours', '4v4': '4v4'}
+        for mode_key, mode_title in all_mode_titles.items():
+            if mode_key in modes_data and modes_data[mode_key]["games_played"] > max_games:
+                max_games = modes_data[mode_key]["games_played"]
+                most_played_gamemode = mode_title
 
         return {
             "username": player_data.get("displayname", "N/A"),
             "uuid": uuid,
-            "level": math.floor(get_bedwars_level(exp)),
-            # Overall section
+            "level": level,
+            "most_played_gamemode": most_played_gamemode,
             "overall": {
                 "wins": overall_wins, "losses": overall_losses, "wlr": overall_wlr,
                 "final_kills": overall_final_kills, "final_deaths": overall_final_deaths, "fkdr": overall_fkdr,
                 "beds_broken": overall_beds_broken, "beds_lost": overall_beds_lost, "bblr": overall_bblr,
                 "kills": overall_kills, "deaths": overall_deaths, "kdr": overall_kdr,
+                "coins": coins,
+                "bedwars_slumber_ticket_master": slumber_tickets, # Use correct key name
+                "games_played": overall_games_played,
+                "win_rate": overall_win_rate,
+                "finals_per_star": overall_finals_per_star,
+                "finals_per_game": overall_finals_per_game,
             },
-            # Modes section
             "modes": modes_data,
             "fetched_by": "uuid"
         }
@@ -171,7 +219,6 @@ def get_player_stats_by_uuid(uuid: str):
     except Exception as e:
         print(f"Error processing stats for UUID {uuid}: {e}")
         return {"error": "Internal server error processing stats.", "uuid": uuid}
-
 
 def fetch_player_data(username: str):
     uuid = get_player_uuid_by_current_name(username)
@@ -204,4 +251,3 @@ def fetch_multiple_player_data(usernames: list):
         normalized_username = username.lower()
         results[normalized_username] = fetch_player_data(username)
     return results
-

@@ -9,7 +9,7 @@
      <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-     </head>
+</head>
 <body class="bg-gradient-to-br from-gray-900 via-purple-950 to-black text-gray-300 min-h-screen p-4 md:p-6">
 
     <div class="container mx-auto max-w-5xl">
@@ -68,7 +68,7 @@
 
             <div id="mode-selector" class="flex flex-wrap justify-center gap-2 my-6 border-b border-gray-700 pb-4">
                 <button data-mode="overall" class="mode-button active">Overall</button>
-                <button data-mode="solos" class="mode-button">Solos</button>
+                <button data-mode="core" class="mode-button">Core</button> <button data-mode="solos" class="mode-button">Solos</button>
                 <button data-mode="doubles" class="mode-button">Doubles</button>
                 <button data-mode="threes" class="mode-button">Threes</button>
                 <button data-mode="fours" class="mode-button">Fours</button>
@@ -136,7 +136,7 @@
                     {{ compare_stat_row('KDR', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'kdr', is_ratio=True) }}
                 </div>
 
-                {% set mode_keys = ['solos', 'doubles', 'threes', 'fours', '4v4'] %}
+                {% set mode_keys = ['core', 'solos', 'doubles', 'threes', 'fours', '4v4'] %}
                 {% for mode_key in mode_keys %}
                     <div class="mode-stats-section hidden" id="mode-{{ mode_key }}">
                         {% set mode_data1 = stats1.modes.get(mode_key) if stats1 and stats1.modes else None %}
@@ -156,7 +156,7 @@
                     </div>
                 {% endfor %}
             </div> </div> </div> <footer class="text-center text-gray-600 mt-10 text-sm">
-        Powered by Hypixel API & Flask.
+            Created By @lava_999
     </footer>
      <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
