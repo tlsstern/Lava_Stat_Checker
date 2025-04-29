@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comparison: {{ user1 }} vs {{ user2 }}</title>
+    <title>Lava Stats Comparison: {{ user1 }} vs {{ user2 }}</title> {/* Changed Title */}
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
      <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +21,7 @@
         </a>
 
         <h1 class="text-3xl md:text-4xl font-bold text-center mb-8 gradient-text">
-            Comparison
+            Comparison {/* Changed Heading? Or keep as Comparison? Keeping Comparison for now. */}
         </h1>
 
         <div class="stat-card p-6 md:p-8 rounded-xl shadow-2xl">
@@ -68,7 +68,8 @@
 
             <div id="mode-selector" class="flex flex-wrap justify-center gap-2 my-6 border-b border-gray-700 pb-4">
                 <button data-mode="overall" class="mode-button active">Overall</button>
-                <button data-mode="core" class="mode-button">Core</button> <button data-mode="solos" class="mode-button">Solos</button>
+                <button data-mode="core" class="mode-button">Core</button>
+                <button data-mode="solos" class="mode-button">Solos</button>
                 <button data-mode="doubles" class="mode-button">Doubles</button>
                 <button data-mode="threes" class="mode-button">Threes</button>
                 <button data-mode="fours" class="mode-button">Fours</button>
@@ -102,10 +103,10 @@
                     {% set diff = val1 - val2 %}
                     {% if diff > 0 %}
                         {% set diff_class = 'diff-positive' %}
-                        {% set diff_disp = "+{:,.2f}".format(diff) if is_ratio else "+{:,}".format(diff | int).replace(',', '.') %}
+                        {% set diff_disp = "+{:,.2f}".format(diff) if is_ratio else "+{:,}".format(diff | int).replace(',', "'") %} {# Changed separator #}
                     {% elif diff < 0 %}
                         {% set diff_class = 'diff-negative' %}
-                        {% set diff_disp = "{:,.2f}".format(diff) if is_ratio else "{:,}".format(diff | int).replace(',', '.') %}
+                        {% set diff_disp = "{:,.2f}".format(diff) if is_ratio else "{:,}".format(diff | int).replace(',', "'") %} {# Changed separator #}
                     {% else %}
                         {% set diff_class = 'diff-zero' %}
                         {% set diff_disp = "0" %}
@@ -155,8 +156,12 @@
                         {{ compare_stat_row('KDR', mode_data1, mode_data2, 'kdr', is_ratio=True) }}
                     </div>
                 {% endfor %}
-            </div> </div> </div> <footer class="text-center text-gray-600 mt-10 text-sm">
-            Created By @lava_999
+            </div>
+
+        </div>
+    </div>
+     <footer class="text-center text-gray-600 mt-10 text-sm">
+        Made by @lava_999
     </footer>
      <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>

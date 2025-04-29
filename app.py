@@ -95,13 +95,12 @@ def compare_stats_page():
     stats2_formatted = format_stats_for_compare(stats2_result)
 
     return render_template('compare.html',
-                           user1=user1_orig,
-                           user2=user2_orig,
-                           stats1=stats1_formatted,
-                           stats2=stats2_formatted)
+        user1=user1_orig,
+        user2=user2_orig,
+        stats1=stats1_formatted,
+        stats2=stats2_formatted)
 
 
-# --- API Endpoints ---
 @app.route('/api/player/<username>', methods=['GET'])
 def api_get_player_stats(username):
     result_data = hypixel_api.fetch_player_data(username)
