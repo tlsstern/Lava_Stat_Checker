@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, render_template, jsonify, request, redirect, url_for
 import hypixel_api
 import json
@@ -14,20 +13,16 @@ if not os.path.exists('templates'): os.makedirs('templates')
 def format_stat_section(section_data):
     if not section_data:
         return section_data
-    # Format standard large numbers (using apostrophe as separator)
     for key in ['wins', 'losses', 'final_kills', 'final_deaths', 'beds_broken', 'beds_lost', 'kills', 'deaths', 'coins', 'games_played']:
         value = section_data.get(key)
         if value is not None and isinstance(value, (int, float)):
-            # Replace comma with apostrophe
             section_data[f'{key}_formatted'] = "{:,}".format(value).replace(',', "'")
         else:
             section_data[f'{key}_formatted'] = section_data.get(key, 'N/A')
 
-    # Explicitly handle slumber_tickets formatting for None case using the correct key
     slumber_key = 'bedwars_slumber_ticket_master'
     slumber_value = section_data.get(slumber_key)
     if slumber_value is not None and isinstance(slumber_value, (int, float)):
-         # Replace comma with apostrophe
         section_data[f'{slumber_key}_formatted'] = "{:,}".format(slumber_value).replace(',', "'")
     else:
         section_data[f'{slumber_key}_formatted'] = 'N/A'

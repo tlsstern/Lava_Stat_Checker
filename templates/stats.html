@@ -43,7 +43,12 @@
                           class="rounded-lg w-20 h-20 border-2 border-purple-600 shadow-md avatar-img"
                           onerror="this.onerror=null; this.src='https://placehold.co/80x80/374151/9ca3af?text=?';">
                      <div>
-                        <h1 class="text-3xl md:text-4xl font-bold gradient-text">{{ stats.username }}</h1>
+                        <h1 class="text-3xl md:text-4xl font-bold gradient-text">
+                            {% if stats.rank_info and stats.rank_info.display_rank != 'Non' %}
+                                [{{ stats.rank_info.display_rank }}]
+                            {% endif %}
+                            {{ stats.username }}
+                        </h1>
                         <p class="text-purple-300 text-lg">Bedwars Level: <span class="font-semibold">{{ stats.level }}</span></p>
                         {% if stats.most_played_gamemode and stats.most_played_gamemode != 'N/A' %}
                         <p class="text-purple-300 text-md mt-1">Most Played: <span class="font-semibold">{{ stats.most_played_gamemode }}</span></p>
