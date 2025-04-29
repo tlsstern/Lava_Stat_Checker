@@ -102,7 +102,7 @@
                      </div>
 
                      {% if stats.modes %}
-                         {% set mode_titles = {'core': 'Core (1s+2s+3s+4s)', 'solos': 'Solos', 'doubles': 'Doubles', 'threes': 'Threes', 'fours': 'Fours', '4v4': '4v4'} %}
+                         {% set mode_titles = {'core': 'Core', 'solos': 'Solos', 'doubles': 'Doubles', 'threes': 'Threes', 'fours': 'Fours', '4v4': '4v4'} %}
                          {% for mode_key, mode_title in mode_titles.items() %}
                          {% set mode_data = stats.modes.get(mode_key) %}
                          <div class="mode-stats-section hidden" id="stats-{{ mode_key }}">
