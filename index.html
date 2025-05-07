@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lava Stats - Hypixel Bedwars Checker</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom right, #1f2937, #4b0082, #000000); /* Adjusted gradient */
+            color: #d1d5db; /* gray-300 */
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .stat-card {
+            background-color: rgba(31, 41, 55, 0.8);
+            backdrop-filter: blur(8px); /* Slightly less blur for static page */
+            border: 1px solid rgba(75, 85, 99, 0.5);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+        }
+        .gradient-text {
+            background-image: linear-gradient(to right, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        h1, h2, h3 {
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        h1 {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        h2 {
+            font-size: 1.8rem;
+            color: #a78bfa; /* purple-400 */
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(75, 85, 99, 0.5);
+            padding-bottom: 0.5rem;
+        }
+         h3 {
+            font-size: 1.4rem;
+            color: #f472b6; /* pink-400 */
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        p {
+            margin-bottom: 1rem;
+        }
+        ul {
+            list-style: disc;
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        li {
+            margin-bottom: 0.5rem;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #7c3aed; /* purple-700 */
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        .cta-button:hover {
+            background-color: #6d28d9; /* purple-800 */
+        }
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: #9ca3af; /* gray-400 */
+            font-size: 0.9rem;
+        }
+         footer a {
+            color: #a78bfa;
+            text-decoration: none;
+            transition: color 0.3s ease;
+         }
+         footer a:hover {
+             color: #c084fc;
+         }
+         .footer-icon {
+             display: inline-block;
+             vertical-align: middle;
+             width: 16px;
+             height: 16px;
+             margin-right: 0.25rem;
+         }
+          .screenshot-container {
+            text-align: center;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+          }
+          .screenshot {
+              max-width: 100%; /* Make image responsive */
+              height: auto;
+              border-radius: 0.5rem;
+              box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+          }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header class="text-center mb-12">
+            <h1 class="gradient-text">Lava Stats</h1>
+        </header>
+
+        <div class="stat-card">
+            <h2>Key Features</h2>
+            <ul>
+                <li>
+                    <strong class="text-purple-300">Detailed Player Stats:</strong> Look up comprehensive statistics for any Hypixel player, including wins, losses, kills, deaths, FKDR, BBLR, and more across different modes (Solos, Doubles, Threes, Fours, 4v4).
+                </li>
+                <li>
+                    <strong class="text-purple-300">"Nerd Stats":</strong> Dive deeper with advanced metrics like Win Rate, Finals per Star, and Finals per Game.
+                </li>
+                <li>
+                    <strong class="text-purple-300">Direct Player Comparison:</strong> Easily compare the stats of two players side-by-side to see who comes out on top in various categories.
+                </li>
+                <li>
+                    <strong class="text-purple-300">User-Friendly Interface:</strong> A clean, responsive design makes navigating stats quick and easy.
+                </li>
+            </ul>
+        </div>
+
+        <div class="screenshot-container">
+            <h3 class="text-purple-300">See the Comparison Feature in Action:</h3>
+            <img src="Screenshot 2025-05-07 153741.png" alt="Screenshot of Lava Stats Comparison Page" class="screenshot">
+            </div>
+
+
+        <div class="stat-card text-center">
+            <h2 class="text-pink-400">Ready to dominate the Bedwars arena?</h2>
+            <p class="text-lg mb-6">Get started today!</p>
+            <a href="https://lava-stat-checker.onrender.com/" target="_blank" class="cta-button">
+                lava-stat-checker.onrender.com
+            </a>
+        </div>
+
+         <footer>
+             <div class="flex justify-center items-center space-x-4">
+                 <span>Made by</span>
+                 <span class="inline-flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="footer-icon text-purple-400" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M13.545 2.907a13.2 13.2 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.577-.406.833a12.2 12.2 0 0 0-3.658 0 8.2 8.2 0 0 0-.412-.833.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.04.04 0 0 0-.021.018C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.3 13.3 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.329a.05.05 0 0 0-.01-.059.05.05 0 0 0-.018-.011 8.9 8.9 0 0 1-1.24-.595.05.05 0 0 1-.02-.066.05.05 0 0 1 .015-.019c.084-.063.168-.129.248-.195a.05.05 0 0 1 .051-.007c2.619 1.165 5.48 1.165 8.1.007a.05.05 0 0 1 .053.005c.08.065.164.132.248.198a.05.05 0 0 1 .015.019.05.05 0 0 1-.02.066 8.9 8.9 0 0 1-1.24.595.05.05 0 0 0-.018.011.05.05 0 0 0-.01.059c.232.466.506.909.813 1.329a.05.05 0 0 0 .056.019 13.2 13.2 0 0 0 3.995-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.04.04 0 0 0-.021-.018Zm-5.468 7.557a1.75 1.75 0 0 1-1.75-1.75 1.75 1.75 0 0 1 1.75-1.75 1.75 1.75 0 0 1 1.75 1.75 1.75 1.75 0 0 1-1.75 1.75Zm3.897 0a1.75 1.75 0 0 1-1.75-1.75 1.75 1.75 0 0 1 1.75-1.75 1.75 1.75 0 0 1 1.75 1.75 1.75 1.75 0 0 1-1.75 1.75Z"/>
+                      </svg>
+                     <span>lava_999</span>
+                 </span>
+                 <a href="https://github.com/tlsstern" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 hover:text-purple-400 transition duration-150">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="footer-icon" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+                      </svg>
+                     GitHub
+                 </a>
+            </div>
+         </footer>
+    </div>
+
+</body>
+</html>
