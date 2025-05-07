@@ -57,7 +57,10 @@ def scrape_bwstats(user: str) -> dict:
         for p in p_tags:
             text = p.text.strip()
             if text.startswith("Level:"):
-                scraped_data['level'] = text.split(': ')[1].replace('✫', '').strip()
+                level_text = text.split(': ')[1]
+                # Remove any kind of star symbol and commas, then strip spaces
+                level_value = re.sub(r'[✫✪,]', '', level_text).strip()
+                scraped_data['level'] = level_value
             elif text.startswith("Coins:"):
                 scraped_data['coins'] = text.split(': ')[1].replace(',', '').strip()
             elif text.startswith("Final Kills/Deaths Ratio (FKDR):"):
