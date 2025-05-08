@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lava Stats{% if stats %} for {{ stats.username }}{% elif original_search %} for {{ original_search }}{% else %} Player Search{% endif %}</title>
+    <title>Lava Stats{% if stats and stats.username %} for {{ stats.username }}{% elif original_search %} for {{ original_search }}{% else %} Player Search{% endif %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,6 +26,7 @@
                 <p>The searched name <strong class="font-semibold">{{ original_search }}</strong> is not the current name for this account.</p>
                 <p>The account now belongs to <strong class="font-semibold">{{ current_name }}</strong>.</p>
                 <p class="mt-2 text-sm">Would you like to search for <a href="{{ url_for('player_stats_page', username=current_name) }}" class="font-semibold underline hover:text-amber-300">{{ current_name }}</a> instead?</p>
+                 <p class="text-xs mt-2">Data Source: API Name History</p>
             </div>
         {% elif error %}
             <div class="info-box info-box-red" role="alert">
@@ -34,27 +35,48 @@
                  {% if username %}
                  <p class="text-sm mt-1">Searched for: {{ username }}</p>
                  {% endif %}
+                 {% if fetched_by %}
+                  <p class="text-xs mt-2">Data Source: {{ fetched_by | replace('_', ' ') | title }}</p>
+                 {% endif %}
+                 {# Removed display of api_error_details in error box #}
             </div>
-        {% elif stats %}
+        {% elif stats %} {# Data is available, either from API or Transformed Scrapper #}
             <div class="stat-card p-6 md:p-8 rounded-xl shadow-2xl mb-8">
                  <div class="flex flex-col sm:flex-row items-center justify-center sm:justify-start text-center sm:text-left mb-6 gap-4">
+                      {# Display avatar and basic info based on available data #}
+                      {% if stats.uuid %}
+                     {# Use Crafatar API if UUID is available #}
                      <img src="https://crafatar.com/avatars/{{ stats.uuid }}?size=80&overlay"
-                          alt="Avatar of {{ stats.username }}"
-                          class="rounded-lg w-20 h-20 border-2 border-purple-600 shadow-md avatar-img"
-                          onerror="this.onerror=null; this.src='https://placehold.co/80x80/374151/9ca3af?text=?';">
+                          alt="Avatar of {{ stats.username if stats.username else 'player' }}"
+                          class="rounded-lg w-20 h-20 border-2 border-purple-600 shadow-md avatar-img">
+                      {% else %}
+                       {# Display placeholder if no UUID is available (e.g., from scrapper) #}
+                       <img src="https://placehold.co/80x80/374151/9ca3af?text=?"
+                            alt="Placeholder Avatar"
+                            class="rounded-lg w-20 h-20 border-2 border-purple-600 shadow-md avatar-img">
+                      {% endif %}
+
                      <div>
                         <h1 class="text-3xl md:text-4xl font-bold gradient-text">
                             {% if stats.rank_info and stats.rank_info.display_rank != 'Non' %}
                                 [{{ stats.rank_info.display_rank }}]
                             {% endif %}
-                            {{ stats.username }}
+                            {{ stats.username if stats.username else original_search }}
                         </h1>
-                        <p class="text-purple-300 text-lg">Bedwars Level: <span class="font-semibold">{{ stats.level }}</span></p>
+                        <p class="text-purple-300 text-lg">Bedwars Level: <span class="font-semibold">{{ stats.level if stats.level is not none else 'N/A' }}</span></p>
+                        {# Added back display of Most Played #}
                         {% if stats.most_played_gamemode and stats.most_played_gamemode != 'N/A' %}
                         <p class="text-purple-300 text-md mt-1">Most Played: <span class="font-semibold">{{ stats.most_played_gamemode }}</span></p>
                         {% endif %}
+                         <p class="text-xs mt-2">Data Source: {{ stats.fetched_by | replace('_', ' ') | title }}</p>
+                          {% if stats.api_error_details %}
+                              <p class="text-xs text-yellow-400 mt-1">API Error Details: {{ stats.api_error_details }}</p>
+                          {% endif %}
                      </div>
                  </div>
+
+                 {# --- Unified Display using API-like Structure (for both API and Transformed Scrapper Data) --- #}
+                 {# Mode selector and stats sections now work with the transformed data structure #}
 
                  <div id="stats-mode-selector" class="flex flex-wrap justify-center gap-2 mb-6 border-b border-gray-700 pb-4">
                     <button data-mode="overall" class="mode-button active">Overall</button>
@@ -73,6 +95,7 @@
                  </div>
 
                  <div id="stats-sections-container">
+                     {# Overall Stats Section #}
                      <div class="mode-stats-section" id="stats-overall">
                          <h2 class="text-2xl font-semibold mb-4 text-center text-purple-300">Overall Stats</h2>
                          {% if stats.overall %}
@@ -89,16 +112,26 @@
                             <div class="stat-item"> <span class="stat-label">Kills</span> <span class="stat-value">{{ stats.overall.kills_formatted }}</span> </div>
                             <div class="stat-item"> <span class="stat-label">Deaths</span> <span class="stat-value">{{ stats.overall.deaths_formatted }}</span> </div>
                             <div class="stat-item"> <span class="stat-label">KDR</span> <span class="stat-value">{{ stats.overall.kdr }}</span> </div>
+                             {# Removed display of Coins from here #}
                          </div>
+                          {# Nerd Stats for Overall - only display if available #}
+                          {# Note: Finals / Star might only be reliably available from API #}
                          <div id="nerd-stats-overall" class="nerd-stats-section hidden mt-6 pt-4 border-t border-gray-700">
                              <h3 class="text-xl font-semibold mb-3 text-center text-purple-400">Overall Nerd Stats</h3>
                              <div class="stat-grid">
                                  <div class="stat-item"> <span class="stat-label">Win Rate</span> <span class="stat-value">{{ stats.overall.win_rate }}%</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">Finals / Star</span> <span class="stat-value">{{ stats.overall.finals_per_star }}</span> </div>
+                                  {% if stats.overall.finals_per_star is not none and stats.overall.finals_per_star != 'N/A' %}
+                                     <div class="stat-item"> <span class="stat-label">Finals / Star</span> <span class="stat-value">{{ stats.overall.finals_per_star }}</span> </div>
+                                 {% endif %}
                                  <div class="stat-item"> <span class="stat-label">Finals / Game</span> <span class="stat-value">{{ stats.overall.finals_per_game }}</span> </div>
                                  <div class="stat-item"> <span class="stat-label">Games Played</span> <span class="stat-value">{{ stats.overall.games_played_formatted }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">Coins</span> <span class="stat-value">{{ stats.overall.coins_formatted }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">Slumber Tickets</span> <span class="stat-value">{{ stats.overall.bedwars_slumber_ticket_master_formatted }}</span> </div>
+                                 {% if stats.overall.coins_formatted is not none and stats.overall.coins_formatted != 'N/A' %}
+                                     <div class="stat-item"> <span class="stat-label">Coins</span> <span class="stat-value">{{ stats.overall.coins_formatted }}</span> </div>
+                                 {% endif %}
+                                  {# Slumber Tickets might only be reliably available from API #}
+                                 {% if stats.overall.bedwars_slumber_ticket_master_formatted is not none and stats.overall.bedwars_slumber_ticket_master_formatted != 'N/A' %}
+                                     <div class="stat-item"> <span class="stat-label">Slumber Tickets</span> <span class="stat-value">{{ stats.overall.bedwars_slumber_ticket_master_formatted }}</span> </div>
+                                 {% endif %}
                              </div>
                          </div>
                          {% else %}
@@ -106,13 +139,19 @@
                          {% endif %}
                      </div>
 
-                     {% if stats.modes %}
-                         {% set mode_titles = {'core': 'Core', 'solos': 'Solos', 'doubles': 'Doubles', 'threes': 'Threes', 'fours': 'Fours', '4v4': '4v4'} %}
-                         {% for mode_key, mode_title in mode_titles.items() %}
-                         {% set mode_data = stats.modes.get(mode_key) %}
+                     {# Mode Stats Sections #}
+                     {# Loop through all modes including the calculated 4v4 #}
+                     {% set all_modes = ['core', 'solos', 'doubles', 'threes', 'fours', '4v4'] %}
+                     {% set mode_titles = {'core': 'Core', 'solos': 'Solos', 'doubles': 'Doubles', 'threes': 'Threes', 'fours': 'Fours', '4v4': '4v4'} %}
+
+                     {% for mode_key in all_modes %}
+                     {% set mode_title = mode_titles.get(mode_key, mode_key | title) %}
+                     {% set mode_data = stats.modes.get(mode_key) %}
+
+                     {# Display mode section only if mode data is available and not None #}
+                     {% if mode_data is not none %}
                          <div class="mode-stats-section hidden" id="stats-{{ mode_key }}">
-                             <h2 class="text-2xl font-semibold mb-4 text-center text-pink-400">{{ mode_title }} Stats</h2>
-                             {% if mode_data %}
+                             <h2 class="text-2xl font-semibold mb-4 text-center {% if mode_key == 'core' %}text-purple-400{% elif mode_key == '4v4' %}text-yellow-400{% else %}text-pink-400{% endif %}">{{ mode_title }} Stats</h2>
                              <div class="stat-grid">
                                  <div class="stat-item"> <span class="stat-label">Wins</span> <span class="stat-value">{{ mode_data.wins_formatted }}</span> </div>
                                  <div class="stat-item"> <span class="stat-label">Losses</span> <span class="stat-value">{{ mode_data.losses_formatted }}</span> </div>
@@ -127,23 +166,30 @@
                                  <div class="stat-item"> <span class="stat-label">Deaths</span> <span class="stat-value">{{ mode_data.deaths_formatted }}</span> </div>
                                  <div class="stat-item"> <span class="stat-label">KDR</span> <span class="stat-value">{{ mode_data.kdr }}</span> </div>
                              </div>
-                              <div id="nerd-stats-{{ mode_key }}" class="nerd-stats-section hidden mt-6 pt-4 border-t border-gray-700">
-                                 <h3 class="text-xl font-semibold mb-3 text-center text-pink-500">{{ mode_title }} Nerd Stats</h3>
+                              {# Nerd Stats for Modes - only display if available #}
+                              <div id="nerd-stats-{{ mode_key}}" class="nerd-stats-section hidden mt-6 pt-4 border-t border-gray-700">
+                                 <h3 class="text-xl font-semibold mb-3 text-center {% if mode_key == 'core' %}text-purple-500{% elif mode_key == '4v4' %}text-yellow-500{% else %}text-pink-500{% endif %}">{{ mode_title }} Nerd Stats</h3>
                                  <div class="stat-grid">
                                      <div class="stat-item"> <span class="stat-label">Win Rate</span> <span class="stat-value">{{ mode_data.win_rate }}%</span> </div>
                                      <div class="stat-item"> <span class="stat-label">Finals / Game</span> <span class="stat-value">{{ mode_data.finals_per_game }}</span> </div>
                                      <div class="stat-item"> <span class="stat-label">Games Played</span> <span class="stat-value">{{ mode_data.games_played_formatted }}</span> </div>
                                  </div>
                              </div>
-                             {% else %}
-                              <p class="text-gray-400 text-center">{{ mode_title }} stats not available.</p>
-                             {% endif %}
                          </div>
-                         {% endfor %}
-                     {% endif %}
-                 </div>
-            </div>
+                         {% endif %} {# End if mode_data is not none #}
+                         {% endfor %} {# End mode loop #}
+
+
+                 </div> {# End stats-sections-container #}
+
+                 {# Include the main.js script for mode selectors and nerd toggle #}
+                 {# This script now works with the unified structure #}
+                 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+
+            </div> {# End stat-card #}
         {% else %}
+             {# This else block should ideally be less common with the updated error handling #}
              <div class="info-box info-box-yellow" role="alert">
                 <strong class="font-bold block mb-1">Info:</strong>
                 <span class="block sm:inline">No statistics found or available for {{ username }}.</span>
@@ -168,6 +214,6 @@
              </a>
         </div>
     </footer>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {# main.js is included conditionally within the API stats block #}
 </body>
 </html>
