@@ -72,6 +72,26 @@ def get_safe_int(value):
     except (ValueError, TypeError):
         return 0
 
+def get_safe_level(value):
+    if value is None:
+        return None
+
+    s_value = str(value)
+    cleaned_digits = []
+    for char in s_value:
+        if '0' <= char <= '9':
+            cleaned_digits.append(char)
+
+    cleaned_string = "".join(cleaned_digits)
+
+    if not cleaned_string:
+        return None
+
+    try:
+        return int(cleaned_string)
+    except ValueError:
+        return None
+
 def transform_scrapper_data(scraped_data):
     """
     Transforms scrapper data to a structure similar to API data,
@@ -85,7 +105,7 @@ def transform_scrapper_data(scraped_data):
         'username': scraped_data.get('username'),
         'uuid': None, # Scrapper doesn't provide UUID directly
         'rank_info': {'display_rank': 'N/A'}, # Set rank to N/A for scraped data
-        'level': get_safe_int(scraped_data.get('level')),
+        'level': get_safe_level(scraped_data.get('level')),
         'most_played_gamemode': 'N/A', # Will calculate below
         'overall': {}, # Initialize overall dict
         'modes': {
