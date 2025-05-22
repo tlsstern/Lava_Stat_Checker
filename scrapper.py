@@ -168,9 +168,7 @@ def scrape_bwstats(user: str) -> dict:
 
 if __name__ == "__main__":
     username_to_scrape = "Lava999"
-    # username_to_scrape = "nonexistentuser123abc"
-    # username_to_scrape = "Hypixel"
-
+    
     print(f"Scraping stats for: {username_to_scrape}")
     stats = scrape_bwstats(username_to_scrape)
 

@@ -1,219 +1,463 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lava Stats{% if stats and stats.username %} for {{ stats.username }}{% elif original_search %} for {{ original_search }}{% else %} Player Search{% endif %}</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      Lava Stats{% if stats and stats.username %} for {{ stats.username }}{%
+      elif original_search %} for {{ original_search }}{% else %} Player
+      Search{% endif %}
+    </title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-</head>
-<body class="bg-gradient-to-br from-gray-900 via-purple-950 to-black text-gray-300 min-h-screen flex flex-col p-4 md:p-6">
-
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body
+    class="bg-gradient-to-br from-gray-900 via-purple-950 to-black text-gray-300 min-h-screen flex flex-col p-4 md:p-6"
+  >
     <div class="container mx-auto max-w-4xl flex-grow">
-        <a href="{{ url_for('index') }}" class="inline-flex items-center gap-1 mb-6 text-purple-400 hover:text-purple-300 transition duration-150 ease-in-out">
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-            Back to Search
-        </a>
+      <a
+        href="{{ url_for('index') }}"
+        class="inline-flex items-center gap-1 mb-6 text-purple-400 hover:text-purple-300 transition duration-150 ease-in-out"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-4 h-4"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15.75 19.5 8.25 12l7.5-7.5"
+          />
+        </svg>
+        Back to Search
+      </a>
 
-        {% if error_type == 'name_changed' %}
-            <div class="info-box info-box-yellow" role="alert">
-                <strong class="font-bold block mb-1">Notice: Name Changed!</strong>
-                <p>The searched name <strong class="font-semibold">{{ original_search }}</strong> is not the current name for this account.</p>
-                <p>The account now belongs to <strong class="font-semibold">{{ current_name }}</strong>.</p>
-                <p class="mt-2 text-sm">Would you like to search for <a href="{{ url_for('player_stats_page', username=current_name) }}" class="font-semibold underline hover:text-amber-300">{{ current_name }}</a> instead?</p>
-                 <p class="text-xs mt-2">Data Source: API Name History</p>
-            </div>
-        {% elif error %}
-            <div class="info-box info-box-red" role="alert">
-                <strong class="font-bold block mb-1">Error!</strong>
-                <span class="block sm:inline">{{ error }}</span>
-                 {% if username %}
-                 <p class="text-sm mt-1">Searched for: {{ username }}</p>
-                 {% endif %}
-                 {% if fetched_by %}
-                  <p class="text-xs mt-2">Data Source: {{ fetched_by | replace('_', ' ') | title }}</p>
-                 {% endif %}
-                 {# Removed display of api_error_details in error box #}
-            </div>
-        {% elif stats %} {# Data is available, either from API or Transformed Scrapper #}
-            <div class="stat-card p-6 md:p-8 rounded-xl shadow-2xl mb-8">
-                 <div class="flex flex-col sm:flex-row items-center justify-center sm:justify-start text-center sm:text-left mb-6 gap-4">
-                      {# Display avatar and basic info based on available data #}
-                      {% if stats.uuid %}
-                     {# Use Crafatar API if UUID is available #}
-                     <img src="https://crafatar.com/avatars/{{ stats.uuid }}?size=80&overlay"
-                          alt="Avatar of {{ stats.username if stats.username else 'player' }}"
-                          class="rounded-lg w-20 h-20 border-2 border-purple-600 shadow-md avatar-img">
-                      {% else %}
-                       {# Display placeholder if no UUID is available (e.g., from scrapper) #}
-                       <img src="https://placehold.co/80x80/374151/9ca3af?text=?"
-                            alt="Placeholder Avatar"
-                            class="rounded-lg w-20 h-20 border-2 border-purple-600 shadow-md avatar-img">
-                      {% endif %}
+      {% if error_type == 'name_changed' %}
+      <div class="info-box info-box-yellow" role="alert">
+        <strong class="font-bold block mb-1">Notice: Name Changed!</strong>
+        <p>
+          The searched name
+          <strong class="font-semibold">{{ original_search }}</strong> is not
+          the current name for this account.
+        </p>
+        <p>
+          The account now belongs to
+          <strong class="font-semibold">{{ current_name }}</strong>.
+        </p>
+        <p class="mt-2 text-sm">
+          Would you like to search for
+          <a
+            href="{{ url_for('player_stats_page', username=current_name) }}"
+            class="font-semibold underline hover:text-amber-300"
+            >{{ current_name }}</a
+          >
+          instead?
+        </p>
+        <p class="text-xs mt-2">Data Source: API Name History</p>
+      </div>
+      {% elif error %}
+      <div class="info-box info-box-red" role="alert">
+        <strong class="font-bold block mb-1">Error!</strong>
+        <span class="block sm:inline">{{ error }}</span>
+        {% if username %}
+        <p class="text-sm mt-1">Searched for: {{ username }}</p>
+        {% endif %} {% if fetched_by %}
+        <p class="text-xs mt-2">
+          Data Source: {{ fetched_by | replace('_', ' ') | title }}
+        </p>
+        {% endif %} {# Removed display of api_error_details in error box #}
+      </div>
+      {% elif stats %} {# Data is available, either from API or Transformed
+      Scrapper #}
+      <div class="stat-card p-6 md:p-8 rounded-xl shadow-2xl mb-8">
+        <div
+          class="flex flex-col sm:flex-row items-center justify-center sm:justify-start text-center sm:text-left mb-6 gap-4"
+        >
+          {# Display avatar and basic info based on available data #} {% if
+          stats.uuid %} {# Use Crafatar API if UUID is available #}
+          <img
+            src="https://crafatar.com/avatars/{{ stats.uuid }}?size=80&overlay"
+            alt="Avatar of {{ stats.username if stats.username else 'player' }}"
+            class="rounded-lg w-20 h-20 border-2 border-purple-600 shadow-md avatar-img"
+          />
+          {% else %} {# Display placeholder if no UUID is available (e.g., from
+          scrapper) #}
+          <img
+            src="https://placehold.co/80x80/374151/9ca3af?text=?"
+            alt="Placeholder Avatar"
+            class="rounded-lg w-20 h-20 border-2 border-purple-600 shadow-md avatar-img"
+          />
+          {% endif %}
 
-                     <div>
-                        <h1 class="text-3xl md:text-4xl font-bold gradient-text">
-                            {% if stats.rank_info and stats.rank_info.display_rank != 'Non' %}
-                                [{{ stats.rank_info.display_rank }}]
-                            {% endif %}
-                            {{ stats.username if stats.username else original_search }}
-                        </h1>
-                        <p class="text-purple-300 text-lg">Bedwars Level: <span class="font-semibold">{{ stats.level if stats.level is not none else 'N/A' }}</span></p>
-                        {# Added back display of Most Played #}
-                        {% if stats.most_played_gamemode and stats.most_played_gamemode != 'N/A' %}
-                        <p class="text-purple-300 text-md mt-1">Most Played: <span class="font-semibold">{{ stats.most_played_gamemode }}</span></p>
-                        {% endif %}
-                         <p class="text-xs mt-2">Data Source: {{ stats.fetched_by | replace('_', ' ') | title }}</p>
-                          {% if stats.api_error_details %}
-                              <p class="text-xs text-yellow-400 mt-1">API Error Details: {{ stats.api_error_details }}</p>
-                          {% endif %}
-                     </div>
-                 </div>
-
-                 {# --- Unified Display using API-like Structure (for both API and Transformed Scrapper Data) --- #}
-                 {# Mode selector and stats sections now work with the transformed data structure #}
-
-                 <div id="stats-mode-selector" class="flex flex-wrap justify-center gap-2 mb-6 border-b border-gray-700 pb-4">
-                    <button data-mode="overall" class="mode-button active">Overall</button>
-                    <button data-mode="core" class="mode-button">Core</button>
-                    <button data-mode="solos" class="mode-button">Solos</button>
-                    <button data-mode="doubles" class="mode-button">Doubles</button>
-                    <button data-mode="threes" class="mode-button">Threes</button>
-                    <button data-mode="fours" class="mode-button">Fours</button>
-                    <button data-mode="4v4" class="mode-button">4v4</button>
-                 </div>
-
-                 <div class="text-center mb-6">
-                     <button id="nerd-mode-toggle" class="nerd-toggle-button">
-                         Show Nerd Stats
-                     </button>
-                 </div>
-
-                 <div id="stats-sections-container">
-                     {# Overall Stats Section #}
-                     <div class="mode-stats-section" id="stats-overall">
-                         <h2 class="text-2xl font-semibold mb-4 text-center text-purple-300">Overall Stats</h2>
-                         {% if stats.overall %}
-                         <div class="stat-grid">
-                            <div class="stat-item"> <span class="stat-label">Wins</span> <span class="stat-value">{{ stats.overall.wins_formatted }}</span> </div>
-                            <div class="stat-item"> <span class="stat-label">Losses</span> <span class="stat-value">{{ stats.overall.losses_formatted }}</span> </div>
-                            <div class="stat-item"> <span class="stat-label">W/L Ratio</span> <span class="stat-value">{{ stats.overall.wlr }}</span> </div>
-                            <div class="stat-item"> <span class="stat-label">Final Kills</span> <span class="stat-value">{{ stats.overall.final_kills_formatted }}</span> </div>
-                            <div class="stat-item"> <span class="stat-label">Final Deaths</span> <span class="stat-value">{{ stats.overall.final_deaths_formatted }}</span> </div>
-                            <div class="stat-item"> <span class="stat-label">FKDR</span> <span class="stat-value">{{ stats.overall.fkdr }}</span> </div>
-                            <div class="stat-item"> <span class="stat-label">Beds Broken</span> <span class="stat-value">{{ stats.overall.beds_broken_formatted }}</span> </div>
-                            <div class="stat-item"> <span class="stat-label">Beds Lost</span> <span class="stat-value">{{ stats.overall.beds_lost_formatted }}</span> </div>
-                            <div class="stat-item"> <span class="stat-label">BBLR</span> <span class="stat-value">{{ stats.overall.bblr }}</span> </div>
-                            <div class="stat-item"> <span class="stat-label">Kills</span> <span class="stat-value">{{ stats.overall.kills_formatted }}</span> </div>
-                            <div class="stat-item"> <span class="stat-label">Deaths</span> <span class="stat-value">{{ stats.overall.deaths_formatted }}</span> </div>
-                            <div class="stat-item"> <span class="stat-label">KDR</span> <span class="stat-value">{{ stats.overall.kdr }}</span> </div>
-                             {# Removed display of Coins from here #}
-                         </div>
-                          {# Nerd Stats for Overall - only display if available #}
-                          {# Note: Finals / Star might only be reliably available from API #}
-                         <div id="nerd-stats-overall" class="nerd-stats-section hidden mt-6 pt-4 border-t border-gray-700">
-                             <h3 class="text-xl font-semibold mb-3 text-center text-purple-400">Overall Nerd Stats</h3>
-                             <div class="stat-grid">
-                                 <div class="stat-item"> <span class="stat-label">Win Rate</span> <span class="stat-value">{{ stats.overall.win_rate }}%</span> </div>
-                                  {% if stats.overall.finals_per_star is not none and stats.overall.finals_per_star != 'N/A' %}
-                                     <div class="stat-item"> <span class="stat-label">Finals / Star</span> <span class="stat-value">{{ stats.overall.finals_per_star }}</span> </div>
-                                 {% endif %}
-                                 <div class="stat-item"> <span class="stat-label">Finals / Game</span> <span class="stat-value">{{ stats.overall.finals_per_game }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">Games Played</span> <span class="stat-value">{{ stats.overall.games_played_formatted }}</span> </div>
-                                 {% if stats.overall.coins_formatted is not none and stats.overall.coins_formatted != 'N/A' %}
-                                     <div class="stat-item"> <span class="stat-label">Coins</span> <span class="stat-value">{{ stats.overall.coins_formatted }}</span> </div>
-                                 {% endif %}
-                                  {# Slumber Tickets might only be reliably available from API #}
-                                 {% if stats.overall.bedwars_slumber_ticket_master_formatted is not none and stats.overall.bedwars_slumber_ticket_master_formatted != 'N/A' %}
-                                     <div class="stat-item"> <span class="stat-label">Slumber Tickets</span> <span class="stat-value">{{ stats.overall.bedwars_slumber_ticket_master_formatted }}</span> </div>
-                                 {% endif %}
-                             </div>
-                         </div>
-                         {% else %}
-                         <p class="text-gray-400 text-center">Overall stats not available.</p>
-                         {% endif %}
-                     </div>
-
-                     {# Mode Stats Sections #}
-                     {# Loop through all modes including the calculated 4v4 #}
-                     {% set all_modes = ['core', 'solos', 'doubles', 'threes', 'fours', '4v4'] %}
-                     {% set mode_titles = {'core': 'Core', 'solos': 'Solos', 'doubles': 'Doubles', 'threes': 'Threes', 'fours': 'Fours', '4v4': '4v4'} %}
-
-                     {% for mode_key in all_modes %}
-                     {% set mode_title = mode_titles.get(mode_key, mode_key | title) %}
-                     {% set mode_data = stats.modes.get(mode_key) %}
-
-                     {# Display mode section only if mode data is available and not None #}
-                     {% if mode_data is not none %}
-                         <div class="mode-stats-section hidden" id="stats-{{ mode_key }}">
-                             <h2 class="text-2xl font-semibold mb-4 text-center {% if mode_key == 'core' %}text-purple-400{% elif mode_key == '4v4' %}text-yellow-400{% else %}text-pink-400{% endif %}">{{ mode_title }} Stats</h2>
-                             <div class="stat-grid">
-                                 <div class="stat-item"> <span class="stat-label">Wins</span> <span class="stat-value">{{ mode_data.wins_formatted }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">Losses</span> <span class="stat-value">{{ mode_data.losses_formatted }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">W/L Ratio</span> <span class="stat-value">{{ mode_data.wlr }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">Final Kills</span> <span class="stat-value">{{ mode_data.final_kills_formatted }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">Final Deaths</span> <span class="stat-value">{{ mode_data.final_deaths_formatted }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">FKDR</span> <span class="stat-value">{{ mode_data.fkdr }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">Beds Broken</span> <span class="stat-value">{{ mode_data.beds_broken_formatted }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">Beds Lost</span> <span class="stat-value">{{ mode_data.beds_lost_formatted }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">BBLR</span> <span class="stat-value">{{ mode_data.bblr }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">Kills</span> <span class="stat-value">{{ mode_data.kills_formatted }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">Deaths</span> <span class="stat-value">{{ mode_data.deaths_formatted }}</span> </div>
-                                 <div class="stat-item"> <span class="stat-label">KDR</span> <span class="stat-value">{{ mode_data.kdr }}</span> </div>
-                             </div>
-                              {# Nerd Stats for Modes - only display if available #}
-                              <div id="nerd-stats-{{ mode_key}}" class="nerd-stats-section hidden mt-6 pt-4 border-t border-gray-700">
-                                 <h3 class="text-xl font-semibold mb-3 text-center {% if mode_key == 'core' %}text-purple-500{% elif mode_key == '4v4' %}text-yellow-500{% else %}text-pink-500{% endif %}">{{ mode_title }} Nerd Stats</h3>
-                                 <div class="stat-grid">
-                                     <div class="stat-item"> <span class="stat-label">Win Rate</span> <span class="stat-value">{{ mode_data.win_rate }}%</span> </div>
-                                     <div class="stat-item"> <span class="stat-label">Finals / Game</span> <span class="stat-value">{{ mode_data.finals_per_game }}</span> </div>
-                                     <div class="stat-item"> <span class="stat-label">Games Played</span> <span class="stat-value">{{ mode_data.games_played_formatted }}</span> </div>
-                                 </div>
-                             </div>
-                         </div>
-                         {% endif %} {# End if mode_data is not none #}
-                         {% endfor %} {# End mode loop #}
-
-
-                 </div> {# End stats-sections-container #}
-
-                 {# Include the main.js script for mode selectors and nerd toggle #}
-                 {# This script now works with the unified structure #}
-                 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-
-
-            </div> {# End stat-card #}
-        {% else %}
-             {# This else block should ideally be less common with the updated error handling #}
-             <div class="info-box info-box-yellow" role="alert">
-                <strong class="font-bold block mb-1">Info:</strong>
-                <span class="block sm:inline">No statistics found or available for {{ username }}.</span>
-            </div>
-        {% endif %}
-
-    </div>
-     <footer class="text-center text-gray-500 mt-10 text-sm">
-         <div class="flex justify-center items-center space-x-4">
-             <span>Made by</span>
-             <span class="inline-flex items-center gap-1">
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-purple-400" fill="currentColor" viewBox="0 0 16 16">
-                     <path d="M13.545 2.907a13.2 13.2 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.577-.406.833a12.2 12.2 0 0 0-3.658 0 8.2 8.2 0 0 0-.412-.833.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.04.04 0 0 0-.021.018C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.3 13.3 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.329a.05.05 0 0 0-.01-.059.05.05 0 0 0-.018-.011 8.9 8.9 0 0 1-1.24-.595.05.05 0 0 1-.02-.066.05.05 0 0 1 .015-.019c.084-.063.168-.129.248-.195a.05.05 0 0 1 .051-.007c2.619 1.165 5.48 1.165 8.1.007a.05.05 0 0 1 .053.005c.08.065.164.132.248.198a.05.05 0 0 1 .015.019.05.05 0 0 1-.02.066 8.9 8.9 0 0 1-1.24.595.05.05 0 0 0-.018.011.05.05 0 0 0-.01.059c.232.466.506.909.813 1.329a.05.05 0 0 0 .056.019 13.2 13.2 0 0 0 3.995-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.04.04 0 0 0-.021-.018Zm-5.468 7.557a1.75 1.75 0 0 1-1.75-1.75 1.75 1.75 0 0 1 1.75-1.75 1.75 1.75 0 0 1 1.75 1.75 1.75 1.75 0 0 1-1.75 1.75Zm3.897 0a1.75 1.75 0 0 1-1.75-1.75 1.75 1.75 0 0 1 1.75-1.75 1.75 1.75 0 0 1 1.75 1.75 1.75 1.75 0 0 1-1.75 1.75Z"/>
-                 </svg>
-                 <span>lava_999</span>
-             </span>
-             <a href="https://github.com/tlsstern" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 hover:text-purple-400 transition duration-150">
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 16 16">
-                     <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
-                 </svg>
-                 GitHub
-             </a>
+          <div>
+            <h1 class="text-3xl md:text-4xl font-bold gradient-text">
+              {% if stats.rank_info and stats.rank_info.display_rank != 'Non' %}
+              [{{ stats.rank_info.display_rank }}] {% endif %} {{ stats.username
+              if stats.username else original_search }}
+            </h1>
+            <p class="text-purple-300 text-lg">
+              Bedwars Level:
+              <span class="font-semibold"
+                >{{ stats.level if stats.level is not none else 'N/A' }}</span
+              >
+            </p>
+            {# Added back display of Most Played #} {% if
+            stats.most_played_gamemode and stats.most_played_gamemode != 'N/A'
+            %}
+            <p class="text-purple-300 text-md mt-1">
+              Most Played:
+              <span class="font-semibold"
+                >{{ stats.most_played_gamemode }}</span
+              >
+            </p>
+            {% endif %}
+            <p class="text-xs mt-2">
+              Data Source: {{ stats.fetched_by | replace('_', ' ') | title }}
+            </p>
+            {% if stats.api_error_details %}
+            <p class="text-xs text-yellow-400 mt-1">
+              API Error Details: {{ stats.api_error_details }}
+            </p>
+            {% endif %}
+          </div>
         </div>
+
+        {# --- Unified Display using API-like Structure (for both API and
+        Transformed Scrapper Data) --- #} {# Mode selector and stats sections
+        now work with the transformed data structure #}
+
+        <div
+          id="stats-mode-selector"
+          class="flex flex-wrap justify-center gap-2 mb-6 border-b border-gray-700 pb-4"
+        >
+          <button data-mode="overall" class="mode-button active">
+            Overall
+          </button>
+          <button data-mode="core" class="mode-button">Core</button>
+          <button data-mode="solos" class="mode-button">Solos</button>
+          <button data-mode="doubles" class="mode-button">Doubles</button>
+          <button data-mode="threes" class="mode-button">Threes</button>
+          <button data-mode="fours" class="mode-button">Fours</button>
+          <button data-mode="4v4" class="mode-button">4v4</button>
+        </div>
+
+        <div class="text-center mb-6">
+          <button id="nerd-mode-toggle" class="nerd-toggle-button">
+            Show Nerd Stats
+          </button>
+        </div>
+
+        <div id="stats-sections-container">
+          {# Overall Stats Section #}
+          <div class="mode-stats-section" id="stats-overall">
+            <h2 class="text-2xl font-semibold mb-4 text-center text-purple-300">
+              Overall Stats
+            </h2>
+            {% if stats.overall %}
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-label">Wins</span>
+                <span class="stat-value"
+                  >{{ stats.overall.wins_formatted }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Losses</span>
+                <span class="stat-value"
+                  >{{ stats.overall.losses_formatted }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">W/L Ratio</span>
+                <span class="stat-value">{{ stats.overall.wlr }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Final Kills</span>
+                <span class="stat-value"
+                  >{{ stats.overall.final_kills_formatted }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Final Deaths</span>
+                <span class="stat-value"
+                  >{{ stats.overall.final_deaths_formatted }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">FKDR</span>
+                <span class="stat-value">{{ stats.overall.fkdr }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Beds Broken</span>
+                <span class="stat-value"
+                  >{{ stats.overall.beds_broken_formatted }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Beds Lost</span>
+                <span class="stat-value"
+                  >{{ stats.overall.beds_lost_formatted }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">BBLR</span>
+                <span class="stat-value">{{ stats.overall.bblr }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Kills</span>
+                <span class="stat-value"
+                  >{{ stats.overall.kills_formatted }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Deaths</span>
+                <span class="stat-value"
+                  >{{ stats.overall.deaths_formatted }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">KDR</span>
+                <span class="stat-value">{{ stats.overall.kdr }}</span>
+              </div>
+              {# Removed display of Coins from here #}
+            </div>
+            {# Nerd Stats for Overall - only display if available #} {# Note:
+            Finals / Star might only be reliably available from API #}
+            <div
+              id="nerd-stats-overall"
+              class="nerd-stats-section hidden mt-6 pt-4 border-t border-gray-700"
+            >
+              <h3
+                class="text-xl font-semibold mb-3 text-center text-purple-400"
+              >
+                Overall Nerd Stats
+              </h3>
+              <div class="stat-grid">
+                <div class="stat-item">
+                  <span class="stat-label">Win Rate</span>
+                  <span class="stat-value">{{ stats.overall.win_rate }}%</span>
+                </div>
+                {% if stats.overall.finals_per_star is not none and
+                stats.overall.finals_per_star != 'N/A' %}
+                <div class="stat-item">
+                  <span class="stat-label">Finals / Star</span>
+                  <span class="stat-value"
+                    >{{ stats.overall.finals_per_star }}</span
+                  >
+                </div>
+                {% endif %}
+                <div class="stat-item">
+                  <span class="stat-label">Finals / Game</span>
+                  <span class="stat-value"
+                    >{{ stats.overall.finals_per_game }}</span
+                  >
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Games Played</span>
+                  <span class="stat-value"
+                    >{{ stats.overall.games_played_formatted }}</span
+                  >
+                </div>
+                {% if stats.overall.coins_formatted is not none and
+                stats.overall.coins_formatted != 'N/A' %}
+                <div class="stat-item">
+                  <span class="stat-label">Coins</span>
+                  <span class="stat-value"
+                    >{{ stats.overall.coins_formatted }}</span
+                  >
+                </div>
+                {% endif %} {# Slumber Tickets might only be reliably available
+                from API #} {% if
+                stats.overall.bedwars_slumber_ticket_master_formatted is not
+                none and stats.overall.bedwars_slumber_ticket_master_formatted
+                != 'N/A' %}
+                <div class="stat-item">
+                  <span class="stat-label">Slumber Tickets</span>
+                  <span class="stat-value"
+                    >{{ stats.overall.bedwars_slumber_ticket_master_formatted
+                    }}</span
+                  >
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            {% else %}
+            <p class="text-gray-400 text-center">
+              Overall stats not available.
+            </p>
+            {% endif %}
+          </div>
+
+          {# Mode Stats Sections #} {# Loop through all modes including the
+          calculated 4v4 #} {% set all_modes = ['core', 'solos', 'doubles',
+          'threes', 'fours', '4v4'] %} {% set mode_titles = {'core': 'Core',
+          'solos': 'Solos', 'doubles': 'Doubles', 'threes': 'Threes', 'fours':
+          'Fours', '4v4': '4v4'} %} {% for mode_key in all_modes %} {% set
+          mode_title = mode_titles.get(mode_key, mode_key | title) %} {% set
+          mode_data = stats.modes.get(mode_key) %} {# Display mode section only
+          if mode data is available and not None #} {% if mode_data is not none
+          %}
+          <div class="mode-stats-section hidden" id="stats-{{ mode_key }}">
+            <h2
+              class="text-2xl font-semibold mb-4 text-center {% if mode_key == 'core' %}text-purple-400{% elif mode_key == '4v4' %}text-yellow-400{% else %}text-pink-400{% endif %}"
+            >
+              {{ mode_title }} Stats
+            </h2>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-label">Wins</span>
+                <span class="stat-value">{{ mode_data.wins_formatted }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Losses</span>
+                <span class="stat-value">{{ mode_data.losses_formatted }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">W/L Ratio</span>
+                <span class="stat-value">{{ mode_data.wlr }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Final Kills</span>
+                <span class="stat-value"
+                  >{{ mode_data.final_kills_formatted }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Final Deaths</span>
+                <span class="stat-value"
+                  >{{ mode_data.final_deaths_formatted }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">FKDR</span>
+                <span class="stat-value">{{ mode_data.fkdr }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Beds Broken</span>
+                <span class="stat-value"
+                  >{{ mode_data.beds_broken_formatted }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Beds Lost</span>
+                <span class="stat-value"
+                  >{{ mode_data.beds_lost_formatted }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">BBLR</span>
+                <span class="stat-value">{{ mode_data.bblr }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Kills</span>
+                <span class="stat-value">{{ mode_data.kills_formatted }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Deaths</span>
+                <span class="stat-value">{{ mode_data.deaths_formatted }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">KDR</span>
+                <span class="stat-value">{{ mode_data.kdr }}</span>
+              </div>
+            </div>
+            {# Nerd Stats for Modes - only display if available #}
+            <div
+              id="nerd-stats-{{ mode_key}}"
+              class="nerd-stats-section hidden mt-6 pt-4 border-t border-gray-700"
+            >
+              <h3
+                class="text-xl font-semibold mb-3 text-center {% if mode_key == 'core' %}text-purple-500{% elif mode_key == '4v4' %}text-yellow-500{% else %}text-pink-500{% endif %}"
+              >
+                {{ mode_title }} Nerd Stats
+              </h3>
+              <div class="stat-grid">
+                <div class="stat-item">
+                  <span class="stat-label">Win Rate</span>
+                  <span class="stat-value">{{ mode_data.win_rate }}%</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Finals / Game</span>
+                  <span class="stat-value"
+                    >{{ mode_data.finals_per_game }}</span
+                  >
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Games Played</span>
+                  <span class="stat-value"
+                    >{{ mode_data.games_played_formatted }}</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endif %} {# End if mode_data is not none #} {% endfor %} {# End
+          mode loop #}
+        </div>
+        {# End stats-sections-container #} {# Include the main.js script for
+        mode selectors and nerd toggle #} {# This script now works with the
+        unified structure #}
+        <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+      </div>
+      {# End stat-card #} {% else %} {# This else block should ideally be less
+      common with the updated error handling #}
+      <div class="info-box info-box-yellow" role="alert">
+        <strong class="font-bold block mb-1">Info:</strong>
+        <span class="block sm:inline"
+          >No statistics found or available for {{ username }}.</span
+        >
+      </div>
+      {% endif %}
+    </div>
+    <footer class="text-center text-gray-500 mt-10 text-sm">
+      <div class="flex justify-center items-center space-x-4">
+        <span>Made by</span>
+        <span class="inline-flex items-center gap-1">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4 text-purple-400"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M13.545 2.907a13.2 13.2 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.577-.406.833a12.2 12.2 0 0 0-3.658 0 8.2 8.2 0 0 0-.412-.833.05.05 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.04.04 0 0 0-.021.018C.356 6.024-.213 9.047.066 12.032c.001.014.01.028.021.037a13.3 13.3 0 0 0 3.995 2.02.05.05 0 0 0 .056-.019c.308-.42.582-.863.818-1.329a.05.05 0 0 0-.01-.059.05.05 0 0 0-.018-.011 8.9 8.9 0 0 1-1.24-.595.05.05 0 0 1-.02-.066.05.05 0 0 1 .015-.019c.084-.063.168-.129.248-.195a.05.05 0 0 1 .051-.007c2.619 1.165 5.48 1.165 8.1.007a.05.05 0 0 1 .053.005c.08.065.164.132.248.198a.05.05 0 0 1 .015.019.05.05 0 0 1-.02.066 8.9 8.9 0 0 1-1.24.595.05.05 0 0 0-.018.011.05.05 0 0 0-.01.059c.232.466.506.909.813 1.329a.05.05 0 0 0 .056.019 13.2 13.2 0 0 0 3.995-2.02.05.05 0 0 0 .021-.037c.334-3.451-.559-6.449-2.366-9.106a.04.04 0 0 0-.021-.018Zm-5.468 7.557a1.75 1.75 0 0 1-1.75-1.75 1.75 1.75 0 0 1 1.75-1.75 1.75 1.75 0 0 1 1.75 1.75 1.75 1.75 0 0 1-1.75 1.75Zm3.897 0a1.75 1.75 0 0 1-1.75-1.75 1.75 1.75 0 0 1 1.75-1.75 1.75 1.75 0 0 1 1.75 1.75 1.75 1.75 0 0 1-1.75 1.75Z"
+            />
+          </svg>
+          <span>lava_999</span>
+        </span>
+        <a
+          href="https://github.com/tlsstern"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1 hover:text-purple-400 transition duration-150"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"
+            />
+          </svg>
+          GitHub
+        </a>
+      </div>
     </footer>
     {# main.js is included conditionally within the API stats block #}
-</body>
+  </body>
 </html>
