@@ -104,10 +104,11 @@
                 {% set val1_disp = data1.get(val1_disp_key, 'N/A') if data1_valid else 'N/A' %}
                 {% set val2_disp = data2.get(val2_disp_key, 'N/A') if data2_valid else 'N/A' %}
                 
-                {# Get raw values for difference calculation, but only format if they're not already formatted #}
+                {# For numeric comparisons and differences #}
                 {% set num_val1 = val1 %}
                 {% set num_val2 = val2 %}
                 
+                {# Handle ratio value display #}
                 {% if is_ratio %}
                     {# Only try to format if the value is not already a string #}
                     {% if val1 is not string and val1 is not none %}
@@ -122,8 +123,18 @@
                 {% set diff_class = 'diff-na' %}
                 {% set diff_disp = 'N/A' %}
                 
-                {# Only calculate difference if both values are numbers #}
-                {% if num_val1 is not none and num_val2 is not none and num_val1 is not string and num_val2 is not string %}
+                {# Calculate difference if both values are numeric #}
+                {% if num_val1 is not none and num_val2 is not none and val1_disp != 'N/A' and val2_disp != 'N/A' %}
+                    {% if is_ratio %}
+                        {# Parse numeric values from string if needed #}
+                        {% if num_val1 is string %}
+                            {% set num_val1 = num_val1|replace(',', '')|float(0) %}
+                        {% endif %}
+                        {% if num_val2 is string %}
+                            {% set num_val2 = num_val2|replace(',', '')|float(0) %}
+                        {% endif %}
+                    {% endif %}
+                    
                     {% set diff = num_val1 - num_val2 %}
                     {% if diff > 0 %}
                         {% set diff_class = 'diff-positive' %}
