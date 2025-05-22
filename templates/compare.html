@@ -103,15 +103,28 @@
                 {% set val2_disp_key = key + '_formatted' if use_formatted and data2_valid and (key + '_formatted') in data2 else key %}
                 {% set val1_disp = data1.get(val1_disp_key, 'N/A') if data1_valid else 'N/A' %}
                 {% set val2_disp = data2.get(val2_disp_key, 'N/A') if data2_valid else 'N/A' %}
+                
+                {# Get raw values for difference calculation, but only format if they're not already formatted #}
+                {% set num_val1 = val1 %}
+                {% set num_val2 = val2 %}
+                
                 {% if is_ratio %}
-                    {% set val1_disp = "{:,.2f}".format(val1) if val1 is not none else 'N/A' %}
-                    {% set val2_disp = "{:,.2f}".format(val2) if val2 is not none else 'N/A' %}
+                    {# Only try to format if the value is not already a string #}
+                    {% if val1 is not string and val1 is not none %}
+                        {% set val1_disp = "{:,.2f}".format(val1) %}
+                    {% endif %}
+                    {% if val2 is not string and val2 is not none %}
+                        {% set val2_disp = "{:,.2f}".format(val2) %}
+                    {% endif %}
                 {% endif %}
+                
                 {% set diff = None %}
                 {% set diff_class = 'diff-na' %}
                 {% set diff_disp = 'N/A' %}
-                {% if val1 is not none and val2 is not none %}
-                    {% set diff = val1 - val2 %}
+                
+                {# Only calculate difference if both values are numbers #}
+                {% if num_val1 is not none and num_val2 is not none and num_val1 is not string and num_val2 is not string %}
+                    {% set diff = num_val1 - num_val2 %}
                     {% if diff > 0 %}
                         {% set diff_class = 'diff-positive' %}
                         {% set diff_disp = "+{:,.2f}".format(diff) if is_ratio else "+{:,}".format(diff | int).replace(',', "'") %}
@@ -123,6 +136,7 @@
                         {% set diff_disp = "0" %}
                     {% endif %}
                 {% endif %}
+                
                 <div class="compare-table-grid">
                     <div class="stat-label-col">{{ label }}</div>
                     <div class="stat-value-col {{ 'text-gray-500' if not data1_valid else 'text-purple-300' }}">{{ val1_disp }}</div>
