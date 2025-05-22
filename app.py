@@ -101,9 +101,24 @@ def transform_scrapper_data(scraped_data):
         # If scrapper itself returned an error, return it as is
         return scraped_data
 
+    # Try to get UUID from Mojang API for avatar display when using scrapper data
+    username = scraped_data.get('username')
+    player_uuid = None
+    if username:
+        try:
+            import requests
+            response = requests.get(f"https://api.mojang.com/users/profiles/minecraft/{username}", timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                if data and 'id' in data:
+                    player_uuid = data.get('id')
+                    print(f"Mojang UUID found for {username}: {player_uuid}")
+        except Exception as e:
+            print(f"Error getting UUID from Mojang for {username}: {e}")
+
     transformed = {
-        'username': scraped_data.get('username'),
-        'uuid': None, # Scrapper doesn't provide UUID directly
+        'username': username,
+        'uuid': player_uuid,  # Now using UUID from Mojang API if available
         'rank_info': {'display_rank': 'N/A'}, # Set rank to N/A for scraped data
         'level': get_safe_level(scraped_data.get('level')),
         'most_played_gamemode': 'N/A', # Will calculate below
