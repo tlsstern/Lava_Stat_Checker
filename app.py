@@ -202,7 +202,15 @@ def transform_scrapper_data(scraped_data):
     transformed['overall']['bblr'] = calculate_ratio(transformed['overall'].get('beds_broken'), transformed['overall'].get('beds_lost'))
     transformed['overall']['kdr'] = calculate_ratio(transformed['overall'].get('kills'), transformed['overall'].get('deaths'))
     transformed['overall']['win_rate'] = calculate_win_rate(transformed['overall'].get('wins'), transformed['overall'].get('games_played'))
-    transformed['overall']['finals_per_star'] = 0.0 # Not reliably calculated from scraped data
+    
+    # Calculate finals per star correctly based on level
+    if transformed['level'] and transformed['level'] > 0:
+        transformed['overall']['finals_per_star'] = round(transformed['overall'].get('final_kills', 0) / transformed['level'], 2)
+    elif transformed['overall'].get('final_kills', 0) > 0:
+        transformed['overall']['finals_per_star'] = float(transformed['overall'].get('final_kills', 0))
+    else:
+        transformed['overall']['finals_per_star'] = 0.0
+        
     transformed['overall']['finals_per_game'] = calculate_finals_per_game(transformed['overall'].get('final_kills'), transformed['overall'].get('games_played'))
     transformed['overall']['bedwars_slumber_ticket_master'] = None # API only
 
