@@ -360,12 +360,3 @@ def fetch_multiple_player_data(usernames: list):
         normalized_username = username.lower()
         results[normalized_username] = fetch_player_data(username)
     return results
-
-# Note for app.py: The data structure returned by fetch_player_data can now be
-# either the API format (if successful), a specific 'name_changed' error structure,
-# or the raw data structure from the scrapper.
-# You will need to update app.py (specifically player_stats_page and compare_stats_page)
-# to check the 'fetched_by' key and adapt how the data is processed and displayed
-# based on whether it came from the API or the scrapper.
-# The 'format_stat_section' function in app.py is currently designed for the API
-# structure; it may need modifications or conditional logic to work with scrapper data.
