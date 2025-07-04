@@ -12,9 +12,22 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import datetime
 import platform
+import json
+import os
+import time
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+CACHE_DIR = "./cache"
+CACHE_DURATION = 3600 # Cache for 1 hour (3600 seconds)
+
+# Ensure cache directory exists
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+def get_cache_path():
+    today_str = datetime.datetime.now().strftime("%d_%m_%Y")
+    return os.path.join(CACHE_DIR, f"cache_{today_str}.json")
 
 def get_driver():
     chrome_options = Options()
@@ -36,6 +49,38 @@ def get_driver():
     return driver
 
 def scrape_bwstats(username):
+    cache_path = get_cache_path()
+    all_cached_data = {}
+
+    # Load existing cache data if available
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, 'r') as f:
+                all_cached_data = json.load(f)
+        except json.JSONDecodeError as e:
+            logger.warning(f"Corrupted daily cache file: {e}. Starting with empty cache.")
+            all_cached_data = {} # Start fresh if corrupted
+        except Exception as e:
+            logger.warning(f"Error reading daily cache file: {e}. Starting with empty cache.")
+            all_cached_data = {}
+
+    # Check for specific user's cached data
+    user_cached_data = all_cached_data.get(username.lower())
+    if user_cached_data:
+        last_updated_str = user_cached_data.get('last_updated')
+        if last_updated_str:
+            try:
+                last_updated_dt = datetime.datetime.fromisoformat(last_updated_str)
+                if (datetime.datetime.utcnow() - last_updated_dt).total_seconds() < CACHE_DURATION:
+                    logger.info(f"Returning cached data for {username}")
+                    return user_cached_data
+                else:
+                    logger.info(f"Cached data for {username} is stale. Re-scraping.")
+            except ValueError:
+                logger.warning(f"Invalid 'last_updated' timestamp for {username}. Re-scraping.")
+        else:
+            logger.warning(f"Cached data for {username} missing 'last_updated' timestamp. Re-scraping.")
+
     driver = None
     try:
         driver = get_driver()
@@ -114,27 +159,13 @@ def scrape_bwstats(username):
             if match:
                 data["star"] = int(match.group(1))
 
-        # Extract data updated time
-        updated_div = soup.find('div', class_="p-6 text-center py-4")
-        if updated_div:
-            updated_p = updated_div.find('p', class_="text-sm text-muted-foreground")
-            if updated_p:
-                # Extract text, then use regex to find the time
-                updated_text = updated_p.get_text(strip=True)
-                time_match = re.search(r'Data updated at\s*([0-9]{1,2}:[0-9]{2}:[0-9]{2}\s*[AP]M)', updated_text)
-                if time_match:
-                    time_str = time_match.group(1)
-                    # Assuming the date is today for simplicity, as the website doesn't provide it
-                    # This might need adjustment if the website provides a date in the future
-                    today = datetime.date.today()
-                    try:
-                        # Combine today's date with the scraped time
-                        dt_object = datetime.datetime.strptime(f"{today.year}-{today.month}-{today.day} {time_str}", "%Y-%m-%d %I:%M:%S %p")
-                        data["last_updated_timestamp"] = dt_object
-                    except ValueError:
-                        logger.warning(f"Could not parse updated time: {time_str}")
+        # Save to cache before returning
+        data['last_updated'] = datetime.datetime.utcnow().isoformat()
+        all_cached_data[username.lower()] = data
+        with open(cache_path, 'w') as f:
+            json.dump(all_cached_data, f, indent=4)
+        logger.info(f"Saved scraped data to cache for {username}")
 
-        logger.info(f"Successfully scraped detailed stats for {username}")
         return data
 
     except Exception as e:

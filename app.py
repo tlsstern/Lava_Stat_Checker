@@ -175,7 +175,7 @@ def transform_scrapper_data(scraped_data):
         'modes': final_modes,
         'fetched_by': 'scrapper',
         'original_search': username,
-        'last_updated_timestamp': scraped_data.get('last_updated_timestamp')
+        'last_updated': scraped_data.get('last_updated')
     }
     
     if transformed.get('overall'):
@@ -260,8 +260,8 @@ def player_stats_page():
          formatted_stats = format_stats_for_display(stats_for_display)
          
          # Use the scraped timestamp if available, otherwise use the current time
-         if stats_for_display.get('fetched_by') == 'scrapper' and 'last_updated_timestamp' in stats_for_display:
-             fetched_time = stats_for_display['last_updated_timestamp']
+         if stats_for_display.get('fetched_by') == 'scrapper' and 'last_updated' in stats_for_display:
+             fetched_time = datetime.datetime.fromisoformat(stats_for_display['last_updated'])
          else:
              fetched_time = datetime.datetime.now()
 
