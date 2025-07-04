@@ -1,5 +1,4 @@
-Flask>=2.0
-requests>=2.25
-python-dotenv>=0.15
-gunicorn>=20.0
-beautifulsoup4>=4.9.3
+requests
+beautifulsoup4
+selenium
+webdriver_manager

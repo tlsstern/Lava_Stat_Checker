@@ -1,3 +1,4 @@
+# Lava_Stat_Checker/app.py
 from flask import Flask, render_template, jsonify, request, redirect, url_for
 import hypixel_api
 import os
@@ -62,7 +63,7 @@ def get_safe_int(value):
     if value is None:
         return 0
     try:
-        return int(float(value))
+        return int(float(str(value).replace(',', '')))
     except (ValueError, TypeError):
         return 0
 
@@ -89,7 +90,7 @@ def get_safe_level(value):
 def transform_scrapper_data(scraped_data):
     """
     Transforms scrapper data to a structure similar to API data,
-    including only specified stats and calculating Core and 4v4.
+    using only the overall stats provided by the scrapper.
     """
     if not scraped_data or scraped_data.get('error'):
         return scraped_data
@@ -112,8 +113,8 @@ def transform_scrapper_data(scraped_data):
         'username': username,
         'uuid': player_uuid,
         'rank_info': {'display_rank': 'LAVA'},
-        'level': get_safe_level(scraped_data.get('level')),
-        'most_played_gamemode': 'N/A',
+        'level': get_safe_int(scraped_data.get('star')),
+        'most_played_gamemode': scraped_data.get('most_played', 'N/A'),
         'overall': {},
         'modes': {
             'core': {},
@@ -127,119 +128,35 @@ def transform_scrapper_data(scraped_data):
         'original_search': scraped_data.get('original_search')
     }
 
-    main_stats = scraped_data.get('main_stats', {})
+    transformed['overall']['wins'] = get_safe_int(scraped_data.get('Wins'))
+    transformed['overall']['losses'] = get_safe_int(scraped_data.get('Losses'))
+    transformed['overall']['final_kills'] = get_safe_int(scraped_data.get('Final Kills'))
+    transformed['overall']['final_deaths'] = get_safe_int(scraped_data.get('Final Deaths'))
+    transformed['overall']['beds_broken'] = get_safe_int(scraped_data.get('Beds Broken'))
+    transformed['overall']['beds_lost'] = get_safe_int(scraped_data.get('Beds Lost'))
+    transformed['overall']['kills'] = get_safe_int(scraped_data.get('Kills'))
+    transformed['overall']['deaths'] = get_safe_int(scraped_data.get('Deaths'))
+    transformed['overall']['games_played'] = get_safe_int(scraped_data.get('Games Played'))
+    transformed['overall']['coins'] = 0
+    transformed['overall']['bedwars_slumber_ticket_master'] = None
 
-    individual_mode_map = {
-        'Solo': 'solos',
-        'Doubles': 'doubles',
-        '3v3v3v3': 'threes',
-        '4v4v4v4': 'fours',
-    }
+    transformed['overall']['wlr'] = scraped_data.get('Win/Loss Ratio')
+    transformed['overall']['fkdr'] = scraped_data.get('Final K/D Ratio (FKDR)')
+    transformed['overall']['bblr'] = scraped_data.get('Beds B/L Ratio (BBLR)')
+    transformed['overall']['kdr'] = scraped_data.get('K/D Ratio (KDR)')
 
-    stat_keys = ['Games Played', 'Wins', 'Losses', 'Kills', 'Deaths', 'Final Kills', 'Final Deaths', 'Beds Broken', 'Beds Lost']
-
-    raw_individual_modes_stats = {api_mode_key: {} for api_mode_key in individual_mode_map.values()}
-    raw_overall_stats = {}
-
-    for stat_name in stat_keys:
-        mode_values = main_stats.get(stat_name, {})
-        api_key = stat_name.lower().replace(' ', '_')
-
-        for scraped_mode, value in mode_values.items():
-            if scraped_mode == 'Overall':
-                raw_overall_stats[api_key] = get_safe_int(value)
-            elif scraped_mode in individual_mode_map:
-                mapped_mode_key = individual_mode_map[scraped_mode]
-                raw_individual_modes_stats[mapped_mode_key][api_key] = get_safe_int(value)
-
-    raw_overall_stats['coins'] = get_safe_int(scraped_data.get('coins'))
-
-    calculated_core_stats = {}
-    for stat_key in stat_keys:
-        api_key = stat_key.lower().replace(' ', '_')
-        total_for_core = 0
-        for mode_key in individual_mode_map.values():
-            total_for_core += raw_individual_modes_stats.get(mode_key, {}).get(api_key, 0)
-        calculated_core_stats[api_key] = total_for_core
-
-    calculated_fouvfour_stats = {}
-    for key in ['wins', 'losses', 'games_played', 'kills', 'deaths', 'final_kills', 'final_deaths', 'beds_broken', 'beds_lost']:
-        overall_val = raw_overall_stats.get(key, 0)
-        core_val = calculated_core_stats.get(key, 0)
-        calculated_fouvfour_stats[key] = max(0, overall_val - core_val)
-
-    print(f"--- Calculated Core Stats for {transformed.get('username')} ---")
-    for key, value in calculated_core_stats.items():
-        print(f"  {key}: {value}")
-    print(f"--- Calculated 4v4 Stats for {transformed.get('username')} ---")
-    for key, value in calculated_fouvfour_stats.items():
-        print(f"  {key}: {value}")
-    print("-------------------------------------------------")
-
-
-
-    transformed['overall'] = raw_overall_stats
-    transformed['overall']['wlr'] = calculate_ratio(transformed['overall'].get('wins'), transformed['overall'].get('losses'))
-    transformed['overall']['fkdr'] = calculate_ratio(transformed['overall'].get('final_kills'), transformed['overall'].get('final_deaths'))
-    transformed['overall']['bblr'] = calculate_ratio(transformed['overall'].get('beds_broken'), transformed['overall'].get('beds_lost'))
-    transformed['overall']['kdr'] = calculate_ratio(transformed['overall'].get('kills'), transformed['overall'].get('deaths'))
     transformed['overall']['win_rate'] = calculate_win_rate(transformed['overall'].get('wins'), transformed['overall'].get('games_played'))
-    
+    transformed['overall']['finals_per_game'] = calculate_finals_per_game(transformed['overall'].get('final_kills'), transformed['overall'].get('games_played'))
+
     if transformed['level'] and transformed['level'] > 0:
         transformed['overall']['finals_per_star'] = round(transformed['overall'].get('final_kills', 0) / transformed['level'], 2)
     elif transformed['overall'].get('final_kills', 0) > 0:
         transformed['overall']['finals_per_star'] = float(transformed['overall'].get('final_kills', 0))
     else:
         transformed['overall']['finals_per_star'] = 0.0
-        
-    transformed['overall']['finals_per_game'] = calculate_finals_per_game(transformed['overall'].get('final_kills'), transformed['overall'].get('games_played'))
-    transformed['overall']['bedwars_slumber_ticket_master'] = None # API only
 
-
-    transformed['modes']['core'] = calculated_core_stats
-    transformed['modes']['core']['wlr'] = calculate_ratio(calculated_core_stats.get('wins'), calculated_core_stats.get('losses'))
-    transformed['modes']['core']['fkdr'] = calculate_ratio(calculated_core_stats.get('final_kills'), calculated_core_stats.get('final_deaths'))
-    transformed['modes']['core']['bblr'] = calculate_ratio(calculated_core_stats.get('beds_broken'), calculated_core_stats.get('beds_lost'))
-    transformed['modes']['core']['kdr'] = calculate_ratio(calculated_core_stats.get('kills'), calculated_core_stats.get('deaths'))
-    transformed['modes']['core']['win_rate'] = calculate_win_rate(calculated_core_stats.get('wins'), calculated_core_stats.get('games_played'))
-    transformed['modes']['core']['finals_per_game'] = calculate_finals_per_game(calculated_core_stats.get('final_kills'), calculated_core_stats.get('games_played'))
-
-
-    for mode_key in individual_mode_map.values():
-         mode_raw = raw_individual_modes_stats.get(mode_key, {})
-         transformed['modes'][mode_key] = mode_raw
-         mode_raw['wlr'] = calculate_ratio(mode_raw.get('wins'), mode_raw.get('losses'))
-         mode_raw['fkdr'] = calculate_ratio(mode_raw.get('final_kills'), mode_raw.get('final_deaths'))
-         mode_raw['bblr'] = calculate_ratio(mode_raw.get('beds_broken'), mode_raw.get('beds_lost'))
-         mode_raw['kdr'] = calculate_ratio(mode_raw.get('kills'), mode_raw.get('deaths'))
-         mode_raw['win_rate'] = calculate_win_rate(mode_raw.get('wins'), mode_raw.get('games_played'))
-         mode_raw['finals_per_game'] = calculate_finals_per_game(mode_raw.get('final_kills'), mode_raw.get('games_played'))
-
-
-    transformed['modes']['4v4'] = calculated_fouvfour_stats
-    transformed['modes']['4v4']['wlr'] = calculate_ratio(calculated_fouvfour_stats.get('wins'), calculated_fouvfour_stats.get('losses'))
-    transformed['modes']['4v4']['fkdr'] = calculate_ratio(calculated_fouvfour_stats.get('final_kills'), calculated_fouvfour_stats.get('final_deaths'))
-    transformed['modes']['4v4']['bblr'] = calculate_ratio(calculated_fouvfour_stats.get('beds_broken'), calculated_fouvfour_stats.get('beds_lost'))
-    transformed['modes']['4v4']['kdr'] = calculate_ratio(calculated_fouvfour_stats.get('kills'), calculated_fouvfour_stats.get('deaths'))
-    transformed['modes']['4v4']['win_rate'] = calculate_win_rate(calculated_fouvfour_stats.get('wins'), calculated_fouvfour_stats.get('games_played'))
-    transformed['modes']['4v4']['finals_per_game'] = calculate_finals_per_game(calculated_fouvfour_stats.get('final_kills'), calculated_fouvfour_stats.get('games_played'))
-
-
-    most_played_gamemode = "N/A"
-    max_games = -1
-    scraped_mode_titles_for_most_played = {'Solo': 'Solos', 'Doubles': 'Doubles', '3v3v3v3': 'Threes', '4v4v4v4': 'Fours'}
-    scraped_games_played = main_stats.get('Games Played', {})
-
-    for scraped_mode, games_value in scraped_games_played.items():
-        if scraped_mode in scraped_mode_titles_for_most_played:
-            games = get_safe_int(games_value)
-            if games > max_games:
-                max_games = games
-                most_played_gamemode = scraped_mode_titles_for_most_played[scraped_mode]
-
-    if max_games > 0:
-        transformed['most_played_gamemode'] = most_played_gamemode
-
+    transformed['modes']['core'] = transformed['overall'].copy()
+    transformed['modes']['4v4'] = transformed['overall'].copy()
 
     return transformed
 
@@ -248,7 +165,6 @@ def format_stats_for_display(stats_data):
     if not stats_data:
         return stats_data
 
-    # Handle overall and mode sections
     sections_to_format = []
     if 'overall' in stats_data and stats_data['overall'] is not None:
         sections_to_format.append(stats_data['overall'])
@@ -276,7 +192,7 @@ def format_stats_for_display(stats_data):
              if float_value is not None:
                   section[ratio_key] = "{:,.2f}".format(float_value)
              else:
-                 section[ratio_key] = 'N/A' # Keep N/A if not a number
+                 section[ratio_key] = 'N/A'
 
 
     return stats_data
