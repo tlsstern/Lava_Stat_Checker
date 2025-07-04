@@ -11,6 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import datetime
+import platform
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -22,7 +23,13 @@ def get_driver():
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.binary_location = "/usr/bin/google-chrome"
+    
+    # Set binary location based on OS
+    if platform.system() == "Windows":
+        chrome_options.binary_location = "C:\Program Files\Google\Chrome\Application\chrome.exe"
+    else:
+        # Assume Linux for other OS, common for deployment environments like Render
+        chrome_options.binary_location = "/usr/bin/google-chrome"
     
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
