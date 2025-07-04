@@ -3,6 +3,7 @@ import math
 import scrapper
 import re
 import traceback
+import datetime
 from config import API_KEY
 
 BASE_URL = "https://api.hypixel.net/v2"

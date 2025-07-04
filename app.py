@@ -2,6 +2,7 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for
 import hypixel_api
 import os
+import datetime
 
 app = Flask(__name__)
 
@@ -43,6 +44,26 @@ def format_number(value):
         return "{:,}".format(int(float(value))).replace(',', "'")
     except (ValueError, TypeError):
         return 'N/A'
+
+def time_ago(dt, now=None):
+    """Returns a 'time ago' string for a given datetime object."""
+    if now is None:
+        now = datetime.datetime.now()
+    diff = now - dt
+
+    seconds = int(diff.total_seconds())
+    if seconds < 5: # Consider anything less than 5 seconds as "just now"
+        return "just now"
+    if seconds < 60:
+        return f"{seconds} seconds ago"
+    minutes = round(seconds / 60)
+    if minutes < 60:
+        return f"{minutes} minutes ago"
+    hours = round(minutes / 60)
+    if hours < 24:
+        return f"{hours} hours ago"
+    days = round(hours / 24)
+    return f"{days} days ago"
 
 def get_safe_int(value):
     """Converts a value to an integer, returning 0 if None or invalid."""
@@ -122,6 +143,23 @@ def transform_scrapper_data(scraped_data):
     core_agg['finals_per_game'] = calculate_finals_per_game(core_agg['final_kills'], core_agg['games_played'])
     final_modes['core'] = core_agg
 
+    # Calculate 4v4 stats
+    if 'overall' in final_modes and 'core' in final_modes:
+        overall_stats = final_modes['overall']
+        core_stats = final_modes['core']
+        v4_stats = {}
+        for stat in core_stats:
+            if stat not in ['wlr', 'fkdr', 'bblr', 'kdr', 'win_rate', 'finals_per_game']:
+                v4_stats[stat] = overall_stats.get(stat, 0) - core_stats.get(stat, 0)
+
+        v4_stats['wlr'] = calculate_ratio(v4_stats.get('wins'), v4_stats.get('losses'))
+        v4_stats['fkdr'] = calculate_ratio(v4_stats.get('final_kills'), v4_stats.get('final_deaths'))
+        v4_stats['bblr'] = calculate_ratio(v4_stats.get('beds_broken'), v4_stats.get('beds_lost'))
+        v4_stats['kdr'] = calculate_ratio(v4_stats.get('kills'), v4_stats.get('deaths'))
+        v4_stats['win_rate'] = calculate_win_rate(v4_stats.get('wins'), v4_stats.get('games_played'))
+        v4_stats['finals_per_game'] = calculate_finals_per_game(v4_stats.get('final_kills'), v4_stats.get('games_played'))
+        final_modes['4v4'] = v4_stats
+
     level = scraped_data.get("star")
     overall_fk = final_modes.get('overall', {}).get('final_kills', 0)
     if level and overall_fk:
@@ -136,7 +174,8 @@ def transform_scrapper_data(scraped_data):
         'overall': final_modes.get('overall'),
         'modes': final_modes,
         'fetched_by': 'scrapper',
-        'original_search': username
+        'original_search': username,
+        'last_updated_timestamp': scraped_data.get('last_updated_timestamp')
     }
     
     if transformed.get('overall'):
@@ -211,6 +250,7 @@ def player_stats_page():
 
     if result_data:
          print(f"App: Successfully fetched data for {username} via {result_data.get('fetched_by')}.")
+         fetched_time = datetime.datetime.now()
 
          if result_data.get('fetched_by') == 'scrapper':
              stats_for_display = transform_scrapper_data(result_data)
@@ -218,6 +258,14 @@ def player_stats_page():
              stats_for_display = result_data
 
          formatted_stats = format_stats_for_display(stats_for_display)
+         
+         # Use the scraped timestamp if available, otherwise use the current time
+         if stats_for_display.get('fetched_by') == 'scrapper' and 'last_updated_timestamp' in stats_for_display:
+             fetched_time = stats_for_display['last_updated_timestamp']
+         else:
+             fetched_time = datetime.datetime.now()
+
+         formatted_stats['fetched_at'] = time_ago(fetched_time)
 
          return render_template('stats.html', stats=formatted_stats, username=stats_for_display.get('username', username))
     else:

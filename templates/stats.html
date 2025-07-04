@@ -143,15 +143,19 @@
           id="stats-mode-selector"
           class="flex flex-wrap justify-center gap-2 mb-6 border-b border-gray-700 pb-4"
         >
-          <button data-mode="overall" class="mode-button active">
-            Overall
-          </button>
+          <button data-mode="overall" class="mode-button active">Overall</button>
           <button data-mode="core" class="mode-button">Core</button>
-          <button data-mode="solos" class="mode-button">Solos</button>
-          <button data-mode="doubles" class="mode-button">Doubles</button>
-          <button data-mode="threes" class="mode-button">Threes</button>
-          <button data-mode="fours" class="mode-button">Fours</button>
-          <button data-mode="4v4" class="mode-button">4v4</button>
+          {% set ordered_modes = ['solos', 'doubles', 'threes', 'fours', '4v4'] %}
+          {% for mode_key in ordered_modes %}
+            {% if mode_key in stats.modes %}
+              <button data-mode="{{ mode_key }}" class="mode-button">{{ '4v4' if mode_key == '4v4' else mode_key | title }}</button>
+            {% endif %}
+          {% endfor %}
+          {% for mode_key in stats.modes.keys() %}
+            {% if mode_key not in ['overall', 'core'] + ordered_modes %}
+              <button data-mode="{{ mode_key }}" class="mode-button">{{ mode_key | title }}</button>
+            {% endif %}
+          {% endfor %}
         </div>
 
         <div class="text-center mb-6">
@@ -271,6 +275,14 @@
                     >{{ stats.overall.games_played_formatted }}</span
                   >
                 </div>
+                {% if stats.fetched_at %}
+                <div class="stat-item">
+                  <span class="stat-label">Fetched At</span>
+                  <span class="stat-value"
+                    >{{ stats.fetched_at }}</span
+                  >
+                </div>
+                {% endif %}
                 {% if stats.overall.coins_formatted is not none and
                 stats.overall.coins_formatted != 'N/A' %}
                 <div class="stat-item">
@@ -301,15 +313,10 @@
             {% endif %}
           </div>
 
-          {# Mode Stats Sections #} {# Loop through all modes including the
-          calculated 4v4 #} {% set all_modes = ['core', 'solos', 'doubles',
-          'threes', 'fours', '4v4'] %} {% set mode_titles = {'core': 'Core',
-          'solos': 'Solos', 'doubles': 'Doubles', 'threes': 'Threes', 'fours':
-          'Fours', '4v4': '4v4'} %} {% for mode_key in all_modes %} {% set
-          mode_title = mode_titles.get(mode_key, mode_key | title) %} {% set
-          mode_data = stats.modes.get(mode_key) %} {# Display mode section only
-          if mode data is available and not None #} {% if mode_data is not none
-          %}
+          {# Mode Stats Sections #}
+          {% for mode_key, mode_data in stats.modes.items() %}
+          {% if mode_key != 'overall' and mode_data is not none %}
+           {% set mode_title = mode_key | title %}
           <div class="mode-stats-section hidden" id="stats-{{ mode_key }}">
             <h2
               class="text-2xl font-semibold mb-4 text-center {% if mode_key == 'core' %}text-purple-400{% elif mode_key == '4v4' %}text-yellow-400{% else %}text-pink-400{% endif %}"
@@ -401,6 +408,14 @@
                     >{{ mode_data.games_played_formatted }}</span
                   >
                 </div>
+                {% if stats.fetched_at %}
+                <div class="stat-item">
+                  <span class="stat-label">Fetched At</span>
+                  <span class="stat-value"
+                    >{{ stats.fetched_at }}</span
+                  >
+                </div>
+                {% endif %}
               </div>
             </div>
           </div>

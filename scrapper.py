@@ -10,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+import datetime
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -97,13 +98,33 @@ def scrape_bwstats(username):
                         if mode_key and mode_key in data['modes']:
                             data['modes'][mode_key][stat_key] = value_cell.get_text(strip=True)
         
-        # Extract star from title, as it's not in the table
+        # Extract star from title
         title_elem = soup.find('title')
         if title_elem:
             title_text = title_elem.text
             match = re.search(r'\b(\d+)\b', title_text, re.I)
             if match:
                 data["star"] = int(match.group(1))
+
+        # Extract data updated time
+        updated_div = soup.find('div', class_="p-6 text-center py-4")
+        if updated_div:
+            updated_p = updated_div.find('p', class_="text-sm text-muted-foreground")
+            if updated_p:
+                # Extract text, then use regex to find the time
+                updated_text = updated_p.get_text(strip=True)
+                time_match = re.search(r'Data updated at\s*([0-9]{1,2}:[0-9]{2}:[0-9]{2}\s*[AP]M)', updated_text)
+                if time_match:
+                    time_str = time_match.group(1)
+                    # Assuming the date is today for simplicity, as the website doesn't provide it
+                    # This might need adjustment if the website provides a date in the future
+                    today = datetime.date.today()
+                    try:
+                        # Combine today's date with the scraped time
+                        dt_object = datetime.datetime.strptime(f"{today.year}-{today.month}-{today.day} {time_str}", "%Y-%m-%d %I:%M:%S %p")
+                        data["last_updated_timestamp"] = dt_object
+                    except ValueError:
+                        logger.warning(f"Could not parse updated time: {time_str}")
 
         logger.info(f"Successfully scraped detailed stats for {username}")
         return data
