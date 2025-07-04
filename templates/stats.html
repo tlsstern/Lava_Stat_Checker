@@ -132,6 +132,7 @@
               API Error Details: {{ stats.api_error_details }}
             </p>
             {% endif %}
+            
           </div>
         </div>
 
@@ -236,7 +237,6 @@
                 <span class="stat-label">KDR</span>
                 <span class="stat-value">{{ stats.overall.kdr }}</span>
               </div>
-              {# Removed display of Coins from here #}
             </div>
             {# Nerd Stats for Overall - only display if available #} {# Note:
             Finals / Star might only be reliably available from API #}
@@ -249,6 +249,7 @@
               >
                 Overall Nerd Stats
               </h3>
+              {# Coins are displayed in Nerd Stats #}
               <div class="stat-grid">
                 <div class="stat-item">
                   <span class="stat-label">Win Rate</span>
@@ -275,20 +276,20 @@
                     >{{ stats.overall.games_played_formatted }}</span
                   >
                 </div>
-                {% if stats.fetched_at %}
-                <div class="stat-item">
-                  <span class="stat-label">Fetched</span>
-                  <span class="stat-value"
-                    >{{ stats.fetched_at }}</span
-                  >
-                </div>
-                {% endif %}
                 {% if stats.overall.coins_formatted is not none and
                 stats.overall.coins_formatted != 'N/A' %}
                 <div class="stat-item">
                   <span class="stat-label">Coins</span>
                   <span class="stat-value"
                     >{{ stats.overall.coins_formatted }}</span
+                  >
+                </div>
+                {% endif %}
+                {% if stats.fetched_at and stats.fetched_by == 'scrapper' %}
+                <div class="stat-item">
+                  <span class="stat-label">Fetched</span>
+                  <span class="stat-value"
+                    >{{ stats.fetched_at }}</span
                   >
                 </div>
                 {% endif %} {# Slumber Tickets might only be reliably available
