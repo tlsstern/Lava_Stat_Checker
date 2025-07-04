@@ -5,16 +5,19 @@ set -e
 
 echo "Starting Chrome installation..."
 
-# Download Google Chrome .deb package
-wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+# Update apt-get and install dependencies for adding new repositories
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
 
-# Install the downloaded package
-# dpkg -i attempts to install the package. If dependencies are missing, it will fail.
-# apt-get install -f attempts to fix broken dependencies by installing them.
-sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get install -f -y
+# Add Google Chrome GPG key
+curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome-archive-keyring.gpg
 
-# Clean up the downloaded .deb file
-rm google-chrome-stable_current_amd64.deb
+# Add Google Chrome repository
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/google-chrome-archive-keyring.gpg] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list > /dev/null
+
+# Update apt-get again and install Google Chrome
+sudo apt-get update
+sudo apt-get install -y google-chrome-stable
 
 echo "Chrome installation finished."
 
