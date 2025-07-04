@@ -2,10 +2,7 @@
 import requests
 from bs4 import BeautifulSoup
 import re
-import json
 import logging
-import time
-import concurrent.futures
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -13,9 +10,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
-
-MAX_RETRIES = 3
-RETRY_DELAY = 5
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -32,77 +26,91 @@ def get_driver():
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
-def scrape_bedwars_stats(username):
+def scrape_bwstats(username):
     driver = None
     try:
         driver = get_driver()
         url = f"https://bwstats.shivam.pro/user/{username}"
-        retries = 0
-        while retries < MAX_RETRIES:
-            try:
-                logger.info(f"Attempt {retries + 1}/{MAX_RETRIES} for {username} using Selenium")
-                driver.get(url)
+        logger.info(f"Scraping {url} for {username}")
+        driver.get(url)
 
-                WebDriverWait(driver, 20).until(
-                    EC.presence_of_element_located((By.TAG_NAME, "table"))
-                )
-                
-                if "Player not found" in driver.page_source:
-                    logger.warning(f"Player not found: {username}")
-                    return {"username": username, "error": "Player not found"}
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.TAG_NAME, "table"))
+        )
+        
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
 
-                soup = BeautifulSoup(driver.page_source, 'html.parser')
-                
-                stats = {
-                    "username": username,
-                    "star": None,
-                    "most_played": None
-                }
-                
-                title_elem = soup.find('title')
-                if title_elem:
-                    title_text = title_elem.text
-                    match = re.search(r'\b(\d+)\b', title_text, re.I)
-                    if match:
-                        stats["star"] = int(match.group(1))
-                
-                summary_section = soup.find(string=re.compile(r'preferred mode is', re.I))
-                if summary_section:
-                    most_played_match = re.search(r'preferred mode is\s*(\w+)', summary_section, re.I)
-                    if most_played_match:
-                        stats["most_played"] = most_played_match.group(1)
+        # Find the main stats table
+        table = soup.find('table')
+        if not table:
+             if "Player not found" in driver.page_source:
+                 logger.warning(f"Player not found on bwstats: {username}")
+                 return {"error": "Player not found"}
+             raise ValueError("Stats table not found")
 
-                table = soup.find('table')
-                if not table:
-                    raise ValueError("Main stats table not found in HTML")
-                
-                table_data = {}
-                rows = table.find_all('tr')
-                for row in rows:
-                    cells = row.find_all(['th', 'td'])
-                    if len(cells) >= 2:
-                        label = cells[0].text.strip()
-                        value = cells[1].text.strip()
-                        table_data[label] = value
+        data = {'username': username, 'modes': {}}
+        
+        # --- Parse the detailed table ---
+        rows = table.find_all('tr')
+        if not rows:
+            raise ValueError("Table has no rows")
+            
+        # First row is the header with mode names
+        header_cells = rows[0].find_all(['th', 'td'])
+        modes_list = [cell.get_text(strip=True) for cell in header_cells[1:]] 
+        
+        mode_key_map = {
+            'Overall': 'overall', 'Solo': 'solos', 'Doubles': 'doubles', 
+            '3v3v3v3': 'threes', '4v4v4v4': 'fours', '4v4': '4v4'
+        }
 
-                stats.update(table_data)
-                
-                logger.info(f"Successfully scraped stats for {username}")
-                return stats
+        # Initialize the nested dictionary for each mode found in the header
+        for mode_name in modes_list:
+            mode_key = mode_key_map.get(mode_name)
+            if mode_key:
+                data['modes'][mode_key] = {}
 
-            except Exception as e:
-                logger.warning(f"Error for {username}: {e}")
-                retries += 1
-                if retries < MAX_RETRIES:
-                    logger.info(f"Retrying in {RETRY_DELAY} seconds...")
-                    time.sleep(RETRY_DELAY)
-                else:
-                    logger.error(f"Max retries reached for {username}. Skipping.")
-                    return {"username": username, "error": f"Failed after {MAX_RETRIES} attempts: {e}"}
+        # Iterate over the rest of the rows for stats
+        stat_key_map = {
+            'Games Played': 'games_played', 'Wins': 'wins', 'Losses': 'losses',
+            'Win/Loss Ratio': 'wlr', 'Kills': 'kills', 'Deaths': 'deaths',
+            'K/D Ratio (KDR)': 'kdr', 'Final Kills': 'final_kills',
+            'Final Deaths': 'final_deaths', 'Final K/D Ratio (FKDR)': 'fkdr',
+            'Beds Broken': 'beds_broken', 'Beds Lost': 'beds_lost',
+            'Beds B/L Ratio (BBLR)': 'bblr', 'Winstreak': 'winstreak',
+            'Items Purchased': 'items_purchased'
+        }
+        
+        for row in rows[1:]:
+            cells = row.find_all('td')
+            if not cells: continue
 
+            stat_name_raw = cells[0].get_text(strip=True)
+            stat_key = stat_key_map.get(stat_name_raw)
+
+            if stat_key:
+                # Get values for each mode in that row
+                for i, value_cell in enumerate(cells[1:]):
+                    if i < len(modes_list): # Ensure we don't go out of bounds
+                        mode_name = modes_list[i]
+                        mode_key = mode_key_map.get(mode_name)
+                        if mode_key and mode_key in data['modes']:
+                            data['modes'][mode_key][stat_key] = value_cell.get_text(strip=True)
+        
+        # Extract star from title, as it's not in the table
+        title_elem = soup.find('title')
+        if title_elem:
+            title_text = title_elem.text
+            match = re.search(r'\b(\d+)\b', title_text, re.I)
+            if match:
+                data["star"] = int(match.group(1))
+
+        logger.info(f"Successfully scraped detailed stats for {username}")
+        return data
+
+    except Exception as e:
+        logger.error(f"An error occurred while scraping bwstats for {username}: {e}", exc_info=True)
+        return {"error": "Failed to scrape player stats."}
     finally:
         if driver:
             driver.quit()
-
-def scrape_bwstats(username):
-    return scrape_bedwars_stats(username)

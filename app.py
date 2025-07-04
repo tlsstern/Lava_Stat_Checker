@@ -5,6 +5,7 @@ import os
 
 app = Flask(__name__)
 
+# ... (keep existing setup code and helper functions like calculate_ratio, format_number, etc.) ...
 if not os.path.exists('static'): os.makedirs('static')
 if not os.path.exists('static/css'): os.makedirs('static/css')
 if not os.path.exists('static/js'): os.makedirs('static/js')
@@ -12,42 +13,27 @@ if not os.path.exists('templates'): os.makedirs('templates')
 
 def calculate_ratio(numerator, denominator):
     """Helper to calculate ratio, handling division by zero and None inputs."""
-    if numerator is None or denominator is None:
-        return 0.0
-    try:
-        num = float(numerator)
-        den = float(denominator)
-        if den == 0:
-            return num if num != 0 else 0.0
-        return round(num / den, 2)
-    except (ValueError, TypeError):
-        return 0.0
+    numerator = float(numerator) if numerator is not None else 0
+    denominator = float(denominator) if denominator is not None else 0
+    if denominator == 0:
+        return float(numerator) if numerator != 0 else 0.0
+    return round(numerator / denominator, 2)
 
 def calculate_win_rate(wins, games_played):
     """Helper to calculate win rate, handling division by zero and None inputs."""
-    if wins is None or games_played is None:
+    wins = float(wins) if wins is not None else 0
+    games_played = float(games_played) if games_played is not None else 0
+    if games_played == 0:
         return 0.0
-    try:
-        win_f = float(wins)
-        games_f = float(games_played)
-        if games_f == 0:
-            return 0.0
-        return round((win_f / games_f) * 100, 2)
-    except (ValueError, TypeError):
-        return 0.0
+    return round((wins / games_played) * 100, 2)
 
 def calculate_finals_per_game(final_kills, games_played):
      """Helper to calculate finals per game, handling division by zero and None inputs."""
-     if final_kills is None or games_played is None:
-         return 0.0
-     try:
-         fk_f = float(final_kills)
-         games_f = float(games_played)
-         if games_f == 0:
-             return fk_f if fk_f != 0 else 0.0
-         return round(fk_f / games_f, 2)
-     except (ValueError, TypeError):
-         return 0.0
+     final_kills = float(final_kills) if final_kills is not None else 0
+     games_played = float(games_played) if games_played is not None else 0
+     if games_played == 0:
+        return final_kills
+     return round(final_kills / games_played, 2)
 
 def format_number(value):
     """Formats a number with apostrophe as thousand separator, returns N/A for None/invalid."""
@@ -66,22 +52,15 @@ def get_safe_int(value):
         return int(float(str(value).replace(',', '')))
     except (ValueError, TypeError):
         return 0
-
+        
 def get_safe_level(value):
     if value is None:
         return None
-
     s_value = str(value)
-    cleaned_digits = []
-    for char in s_value:
-        if '0' <= char <= '9':
-            cleaned_digits.append(char)
-
+    cleaned_digits = [char for char in s_value if '0' <= char <= '9']
     cleaned_string = "".join(cleaned_digits)
-
     if not cleaned_string:
         return None
-
     try:
         return int(cleaned_string)
     except ValueError:
@@ -89,8 +68,7 @@ def get_safe_level(value):
 
 def transform_scrapper_data(scraped_data):
     """
-    Transforms scrapper data to a structure similar to API data,
-    using only the overall stats provided by the scrapper.
+    Transforms scrapper data from bwstats.shivam.pro to the app's standard structure.
     """
     if not scraped_data or scraped_data.get('error'):
         return scraped_data
@@ -105,98 +83,103 @@ def transform_scrapper_data(scraped_data):
                 data = response.json()
                 if data and 'id' in data:
                     player_uuid = data.get('id')
-                    print(f"Mojang UUID found for {username}: {player_uuid}")
         except Exception as e:
             print(f"Error getting UUID from Mojang for {username}: {e}")
 
+    final_modes = {}
+    scraped_modes = scraped_data.get('modes', {})
+    
+    # First, process all modes from the scraper
+    for mode_key, mode_data in scraped_modes.items():
+        processed_mode = {}
+        for key, value in mode_data.items():
+            if key not in ['wlr', 'kdr', 'fkdr', 'bblr']:
+                 processed_mode[key] = get_safe_int(value)
+            else:
+                 processed_mode[key] = value
+        
+        processed_mode['win_rate'] = calculate_win_rate(processed_mode.get('wins'), processed_mode.get('games_played'))
+        processed_mode['finals_per_game'] = calculate_finals_per_game(processed_mode.get('final_kills'), processed_mode.get('games_played'))
+        final_modes[mode_key] = processed_mode
+
+    # Aggregate stats for 'Core Modes'
+    core_keys = ['solos', 'doubles', 'threes', 'fours']
+    core_agg = {
+        'wins': 0, 'losses': 0, 'final_kills': 0, 'final_deaths': 0, 'beds_broken': 0,
+        'beds_lost': 0, 'kills': 0, 'deaths': 0, 'games_played': 0
+    }
+    for mode_key in core_keys:
+        if mode_key in final_modes:
+            for stat in core_agg:
+                core_agg[stat] += final_modes[mode_key].get(stat, 0)
+
+    # Calculate ratios for core mode
+    core_agg['wlr'] = calculate_ratio(core_agg['wins'], core_agg['losses'])
+    core_agg['fkdr'] = calculate_ratio(core_agg['final_kills'], core_agg['final_deaths'])
+    core_agg['bblr'] = calculate_ratio(core_agg['beds_broken'], core_agg['beds_lost'])
+    core_agg['kdr'] = calculate_ratio(core_agg['kills'], core_agg['deaths'])
+    core_agg['win_rate'] = calculate_win_rate(core_agg['wins'], core_agg['games_played'])
+    core_agg['finals_per_game'] = calculate_finals_per_game(core_agg['final_kills'], core_agg['games_played'])
+    final_modes['core'] = core_agg
+
+    level = scraped_data.get("star")
+    overall_fk = final_modes.get('overall', {}).get('final_kills', 0)
+    if level and overall_fk:
+        final_modes.get('overall', {})['finals_per_star'] = round(overall_fk / level, 2)
+    
     transformed = {
         'username': username,
         'uuid': player_uuid,
         'rank_info': {'display_rank': 'LAVA'},
-        'level': get_safe_int(scraped_data.get('star')),
-        'most_played_gamemode': scraped_data.get('most_played', 'N/A'),
-        'overall': {},
-        'modes': {
-            'core': {},
-            'solos': {},
-            'doubles': {},
-            'threes': {},
-            'fours': {},
-            '4v4': {}
-        },
+        'level': level,
+        'most_played_gamemode': 'N/A',
+        'overall': final_modes.get('overall'),
+        'modes': final_modes,
         'fetched_by': 'scrapper',
-        'original_search': scraped_data.get('original_search')
+        'original_search': username
     }
-
-    transformed['overall']['wins'] = get_safe_int(scraped_data.get('Wins'))
-    transformed['overall']['losses'] = get_safe_int(scraped_data.get('Losses'))
-    transformed['overall']['final_kills'] = get_safe_int(scraped_data.get('Final Kills'))
-    transformed['overall']['final_deaths'] = get_safe_int(scraped_data.get('Final Deaths'))
-    transformed['overall']['beds_broken'] = get_safe_int(scraped_data.get('Beds Broken'))
-    transformed['overall']['beds_lost'] = get_safe_int(scraped_data.get('Beds Lost'))
-    transformed['overall']['kills'] = get_safe_int(scraped_data.get('Kills'))
-    transformed['overall']['deaths'] = get_safe_int(scraped_data.get('Deaths'))
-    transformed['overall']['games_played'] = get_safe_int(scraped_data.get('Games Played'))
-    transformed['overall']['coins'] = 0
-    transformed['overall']['bedwars_slumber_ticket_master'] = None
-
-    transformed['overall']['wlr'] = scraped_data.get('Win/Loss Ratio')
-    transformed['overall']['fkdr'] = scraped_data.get('Final K/D Ratio (FKDR)')
-    transformed['overall']['bblr'] = scraped_data.get('Beds B/L Ratio (BBLR)')
-    transformed['overall']['kdr'] = scraped_data.get('K/D Ratio (KDR)')
-
-    transformed['overall']['win_rate'] = calculate_win_rate(transformed['overall'].get('wins'), transformed['overall'].get('games_played'))
-    transformed['overall']['finals_per_game'] = calculate_finals_per_game(transformed['overall'].get('final_kills'), transformed['overall'].get('games_played'))
-
-    if transformed['level'] and transformed['level'] > 0:
-        transformed['overall']['finals_per_star'] = round(transformed['overall'].get('final_kills', 0) / transformed['level'], 2)
-    elif transformed['overall'].get('final_kills', 0) > 0:
-        transformed['overall']['finals_per_star'] = float(transformed['overall'].get('final_kills', 0))
-    else:
-        transformed['overall']['finals_per_star'] = 0.0
-
-    transformed['modes']['core'] = transformed['overall'].copy()
-    transformed['modes']['4v4'] = transformed['overall'].copy()
+    
+    if transformed.get('overall'):
+        transformed['overall']['bedwars_slumber_ticket_master'] = None # Not available from this source
 
     return transformed
+
+# ... (The rest of your app.py file remains the same) ...
 
 def format_stats_for_display(stats_data):
     """Formats numerical stats and calculates ratios for display."""
     if not stats_data:
         return stats_data
 
+    # Handle overall and mode sections
     sections_to_format = []
     if 'overall' in stats_data and stats_data['overall'] is not None:
         sections_to_format.append(stats_data['overall'])
     if 'modes' in stats_data:
-        for mode_key in ['core', 'solos', 'doubles', 'threes', 'fours', '4v4']:
-             mode_data = stats_data['modes'].get(mode_key)
-             if mode_data is not None:
+        for mode_key, mode_data in stats_data['modes'].items():
+             if mode_data is not None and mode_key != 'overall':
                 sections_to_format.append(mode_data)
 
 
     for section in sections_to_format:
-        for key in ['wins', 'losses', 'final_kills', 'final_deaths', 'beds_broken', 'beds_lost', 'kills', 'deaths', 'coins', 'games_played']:
+        for key in ['wins', 'losses', 'final_kills', 'final_deaths', 'beds_broken', 'beds_lost', 'kills', 'deaths', 'coins', 'games_played', 'bedwars_slumber_ticket_master']:
             section[f'{key}_formatted'] = format_number(section.get(key))
-
-        slumber_key = 'bedwars_slumber_ticket_master'
-        section[f'{slumber_key}_formatted'] = format_number(section.get(slumber_key))
 
         for ratio_key in ['wlr', 'fkdr', 'bblr', 'kdr', 'win_rate', 'finals_per_star', 'finals_per_game']:
              value = section.get(ratio_key)
+             # Try to convert to float, ignoring non-numeric values like '-'
              try:
-                 float_value = float(value) if value is not None else None
-             except (ValueError, TypeError):
+                 float_value = float(value)
+             except (ValueError, TypeError, AttributeError):
                  float_value = None
 
              if float_value is not None:
                   section[ratio_key] = "{:,.2f}".format(float_value)
              else:
-                 section[ratio_key] = 'N/A'
-
-
+                 # If value is a non-numeric string (like '-'), display it as is, otherwise 'N/A'
+                 section[ratio_key] = value if isinstance(value, str) and not value.replace('.','',1).isdigit() else 'N/A'
+                 
     return stats_data
-
 
 @app.route('/')
 def index():
