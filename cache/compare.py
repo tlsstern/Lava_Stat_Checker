@@ -1,84 +1,170 @@
 import json
+import glob
+from datetime import datetime
 
-def compare_player_stats(file1, file2, username1, username2):
-    """
-    Compares player stats from two different files for two different users.
-
-    Args:
-        file1 (str): The path to the first JSON file.
-        file2 (str): The path to the second JSON file.
-        username1 (str): The username of the first player.
-        username2 (str): The username of the second player.
-    """
-
-    with open(file1) as f1, open(file2) as f2:
-        data1 = json.load(f1)
-        data2 = json.load(f2)
-
-    player1_data_new = data1.get(username1)
-    player1_data_old = data2.get(username1)
-
-    player2_data_new = data1.get(username2)
-    player2_data_old = data2.get(username2)
-
-
-    def calculate_gains(old_stats, new_stats):
-        gains = {}
-        if not old_stats or not new_stats:
-            return None
-
-        for mode, new_mode_stats in new_stats["modes"].items():
-            if mode in old_stats["modes"]:
-                old_mode_stats = old_stats["modes"][mode]
-                mode_gains = {}
-                for stat, new_value in new_mode_stats.items():
-                    if stat in old_mode_stats:
-                        old_value = old_mode_stats[stat]
-                        # Convert to float for calculation, handling commas
-                        try:
-                            new_val = float(str(new_value).replace(",", ""))
-                            old_val = float(str(old_value).replace(",", ""))
-                            mode_gains[stat] = new_val - old_val
-                        except (ValueError, TypeError):
-                            pass
-                gains[mode] = mode_gains
-        return gains
-
-    def calculate_fkdr_gain(old_stats, new_stats):
-        if not old_stats or not new_stats:
-            return "N/A"
+def select_from_list(items, prompt_message):
+    if not items:
+        return None
+    print(prompt_message)
+    for i, item in enumerate(items, 1):
+        print(f"  {i}) {item}")
+    while True:
         try:
-            old_fk = float(str(old_stats["modes"]["overall"]["final_kills"]).replace(",", ""))
-            new_fk = float(str(new_stats["modes"]["overall"]["final_kills"]).replace(",", ""))
-            old_fd = float(str(old_stats["modes"]["overall"]["final_deaths"]).replace(",", ""))
-            new_fd = float(str(new_stats["modes"]["overall"]["final_deaths"]).replace(",", ""))
-            if (new_fd - old_fd) == 0:
-                return "Infinite"
-            return round((new_fk - old_fk) / (new_fd - old_fd), 2)
-        except (ValueError, TypeError, KeyError):
+            choice = int(input("Enter your choice (number): "))
+            if 1 <= choice <= len(items):
+                return items[choice - 1]
+            else:
+                print("Invalid number. Please try again.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
+def get_usernames_from_file(filename):
+    try:
+        with open(filename, 'r') as f:
+            data = json.load(f)
+            return set(data.keys())
+    except (json.JSONDecodeError, FileNotFoundError):
+        return set()
+
+def get_player_stats_from_file(filename, username):
+    try:
+        with open(filename, 'r') as f:
+            data = json.load(f)
+            return data.get(username)
+    except (json.JSONDecodeError, FileNotFoundError):
+        return None
+
+def normalize_modes(modes_dict):
+    normalized = {}
+    for mode, stats in modes_dict.items():
+        key = mode.lower()
+        if key not in normalized:
+            normalized[key] = {}
+        normalized[key].update(stats)
+    return normalized
+
+def calculate_gains(old_stats, new_stats):
+    gains = {}
+    if not old_stats or not new_stats:
+        return None
+    norm_new_modes = normalize_modes(new_stats.get("modes", {}))
+    norm_old_modes = normalize_modes(old_stats.get("modes", {}))
+    for mode, new_mode_stats in norm_new_modes.items():
+        if mode in norm_old_modes:
+            old_mode_stats = norm_old_modes[mode]
+            mode_gains = {}
+            for stat, new_value in new_mode_stats.items():
+                if stat in old_mode_stats:
+                    old_value = old_mode_stats[stat]
+                    try:
+                        new_val = float(str(new_value).replace(",", ""))
+                        old_val = float(str(old_value).replace(",", ""))
+                        mode_gains[stat] = new_val - old_val
+                    except (ValueError, TypeError):
+                        pass
+            if mode_gains:
+                gains[mode.capitalize()] = mode_gains
+    return gains
+
+def calculate_fkdr_gain(old_stats, new_stats):
+    if not old_stats or not new_stats:
+        return "N/A"
+    try:
+        norm_new_overall = normalize_modes(new_stats.get("modes", {})).get("overall", {})
+        norm_old_overall = normalize_modes(old_stats.get("modes", {})).get("overall", {})
+        if not norm_new_overall or not norm_old_overall:
             return "N/A"
+        old_fk = float(str(norm_old_overall.get("final_kills", 0)).replace(",", ""))
+        new_fk = float(str(norm_new_overall.get("final_kills", 0)).replace(",", ""))
+        old_fd = float(str(norm_old_overall.get("final_deaths", 0)).replace(",", ""))
+        new_fd = float(str(norm_new_overall.get("final_deaths", 0)).replace(",", ""))
+        fk_gain = new_fk - old_fk
+        fd_gain = new_fd - old_fd
+        if fd_gain == 0:
+            return "Infinite" if fk_gain > 0 else "0.00"
+        return round(fk_gain / fd_gain, 2)
+    except (ValueError, TypeError, KeyError):
+        return "N/A"
 
+def display_player_gains(username, old_stats, new_stats):
+    old_ts = old_stats.get('last_updated', 'Unknown')
+    new_ts = new_stats.get('last_updated', 'Unknown')
+    print("\n" + "="*50)
+    print(f"        📊 STATS GAIN FOR: {username}")
+    print(f"        From: {old_ts}")
+    print(f"        To:   {new_ts}")
+    print("="*50)
+    player_gains = calculate_gains(old_stats, new_stats)
+    if not player_gains:
+        print("\nNo comparable stats found or no change detected.")
+        print("="*50)
+        return
+    
+    # --- Custom Sort Order Logic ---
+    mode_order = ["Overall", "Solos", "Doubles", "Threes", "Fours"]
+    present_modes = player_gains.keys()
+    final_order = [mode for mode in mode_order if mode in present_modes]
+    other_modes = sorted([mode for mode in present_modes if mode not in mode_order])
+    final_order.extend(other_modes)
+    # --- End of Sort Logic ---
 
-    player1_gains = calculate_gains(player1_data_old, player1_data_new)
-    player2_gains = calculate_gains(player2_data_old, player2_data_new)
-
-    print(f"Stats gain for {username1}:")
-    if player1_gains:
-        for mode, gains in player1_gains.items():
-            print(f"\n--- {mode.capitalize()} ---")
-            for stat, value in gains.items():
+    for mode in final_order:
+        gains = player_gains[mode]
+        print(f"\n--- {mode} ---")
+        has_printed_stat = False
+        for stat, value in sorted(gains.items()):
+            if value != 0:
                 print(f"{stat.replace('_', ' ').capitalize()}: {value:+.2f}")
-        print("\nFKDR Gain (Overall):", calculate_fkdr_gain(player1_data_old, player1_data_new))
+                has_printed_stat = True
+        if not has_printed_stat:
+             print("No changes in this mode.")
+    fkdr_gain = calculate_fkdr_gain(old_stats, new_stats)
+    print(f"\nFKDR Gain (Overall): {fkdr_gain}")
+    print("="*50)
 
-    print(f"\n\nStats gain for {username2}:")
-    if player2_gains:
-        for mode, gains in player2_gains.items():
-            print(f"\n--- {mode.capitalize()} ---")
-            for stat, value in gains.items():
-                print(f"{stat.replace('_', ' ').capitalize()}: {value:+.2f}")
-    else:
-        print(f"No data found for {username2} in one of the files.")
+def main():
+    cache_files = glob.glob('cache_*.json')
+    if not cache_files:
+        print("No cache files found (e.g., 'cache_*.json'). Exiting.")
+        return
+    print("--- Select Cache Files to Compare ---")
+    file1 = select_from_list(cache_files, "Choose the first file:")
+    file2 = select_from_list(cache_files, "Choose the second file:")
+    if not file1 or not file2:
+        print("File selection cancelled. Exiting.")
+        return
+    users1 = get_usernames_from_file(file1)
+    users2 = get_usernames_from_file(file2)
+    common_users = sorted(list(users1.intersection(users2)))
+    if not common_users:
+        print(f"\nNo common players found between {file1} and {file2}. Exiting.")
+        return
+    print("\n--- Select Player ---")
+    username = select_from_list(common_users, "Choose a player to compare (found in both files):")
+    if not username:
+        print("Player selection cancelled. Exiting.")
+        return
+    player_data1 = get_player_stats_from_file(file1, username)
+    player_data2 = get_player_stats_from_file(file2, username)
+    if not player_data1 or not player_data2:
+        print("\nCould not retrieve data for the specified user in one of the files. Exiting.")
+        return
+    try:
+        dt1 = datetime.fromisoformat(player_data1.get('last_updated'))
+        dt2 = datetime.fromisoformat(player_data2.get('last_updated'))
+        if dt1 < dt2:
+            player_data_old = player_data1
+            player_data_new = player_data2
+        else:
+            player_data_old = player_data2
+            player_data_new = player_data1
+            print("\n[INFO] Files were selected out of chronological order. Swapping them automatically.")
+    except (TypeError, ValueError):
+        print("\n[WARNING] Could not parse 'last_updated' timestamp to automatically sort files.")
+        print("Displaying results based on selection order. This may be incorrect.")
+        player_data_old = player_data2
+        player_data_new = player_data1
+    display_player_gains(username, player_data_old, player_data_new)
 
-
-# --- Execution ---
-compare_player_stats('cache_10_07_2025.json', 'cache_04_07_2025.json', 'wlnks', 'ohDevil')
+if __name__ == "__main__":
+    main()
