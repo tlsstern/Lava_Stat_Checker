@@ -228,59 +228,40 @@
 
         <div id="stats-container">
           <div class="mode-stats-section" id="mode-overall">
-            {{ compare_stat_row('Level', stats1, stats2, 'level') }} {{
-            compare_stat_row('Wins', stats1.overall if stats1 else None,
-            stats2.overall if stats2 else None, 'wins', use_formatted=True) }}
-            {{ compare_stat_row('Losses', stats1.overall if stats1 else None,
-            stats2.overall if stats2 else None, 'losses', use_formatted=True) }}
-            {{ compare_stat_row('W/L Ratio', stats1.overall if stats1 else None,
-            stats2.overall if stats2 else None, 'wlr', is_ratio=True) }} {{
-            compare_stat_row('Final Kills', stats1.overall if stats1 else None,
-            stats2.overall if stats2 else None, 'final_kills',
-            use_formatted=True) }} {{ compare_stat_row('Final Deaths',
-            stats1.overall if stats1 else None, stats2.overall if stats2 else
-            None, 'final_deaths', use_formatted=True) }} {{
-            compare_stat_row('FKDR', stats1.overall if stats1 else None,
-            stats2.overall if stats2 else None, 'fkdr', is_ratio=True) }} {{
-            compare_stat_row('Beds Broken', stats1.overall if stats1 else None,
-            stats2.overall if stats2 else None, 'beds_broken',
-            use_formatted=True) }} {{ compare_stat_row('Beds Lost',
-            stats1.overall if stats1 else None, stats2.overall if stats2 else
-            None, 'beds_lost', use_formatted=True) }} {{
-            compare_stat_row('BBLR', stats1.overall if stats1 else None,
-            stats2.overall if stats2 else None, 'bblr', is_ratio=True) }} {{
-            compare_stat_row('Kills', stats1.overall if stats1 else None,
-            stats2.overall if stats2 else None, 'kills', use_formatted=True) }}
-            {{ compare_stat_row('Deaths', stats1.overall if stats1 else None,
-            stats2.overall if stats2 else None, 'deaths', use_formatted=True) }}
-            {{ compare_stat_row('KDR', stats1.overall if stats1 else None,
-            stats2.overall if stats2 else None, 'kdr', is_ratio=True) }}
+            {{ compare_stat_row('Level', stats1, stats2, 'level') }}
+            {{ compare_stat_row('Wins', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'wins', use_formatted=True) }}
+            {{ compare_stat_row('Losses', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'losses', use_formatted=True) }}
+            {{ compare_stat_row('W/L Ratio', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'wlr', is_ratio=True) }}
+            {{ compare_stat_row('Final Kills', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'final_kills', use_formatted=True) }}
+            {{ compare_stat_row('Final Deaths', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'final_deaths', use_formatted=True) }}
+            {{ compare_stat_row('FKDR Gained', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'fkdr', is_ratio=True) }}
+            {{ compare_stat_row('FKDR Session', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'fkdr_session', is_ratio=True) }}
+            {{ compare_stat_row('Beds Broken', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'beds_broken', use_formatted=True) }}
+            {{ compare_stat_row('Beds Lost', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'beds_lost', use_formatted=True) }}
+            {{ compare_stat_row('BBLR', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'bblr', is_ratio=True) }}
+            {{ compare_stat_row('Kills', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'kills', use_formatted=True) }}
+            {{ compare_stat_row('Deaths', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'deaths', use_formatted=True) }}
+            {{ compare_stat_row('KDR', stats1.overall if stats1 else None, stats2.overall if stats2 else None, 'kdr', is_ratio=True) }}
           </div>
 
-          {% set mode_keys = ['core', 'solos', 'doubles', 'threes', 'fours',
-          '4v4'] %} {% for mode_key in mode_keys %}
+          {% set mode_keys = ['core', 'solos', 'doubles', 'threes', 'fours', '4v4'] %}
+          {% for mode_key in mode_keys %}
           <div class="mode-stats-section hidden" id="mode-{{ mode_key }}">
-            {% set mode_data1 = stats1.modes.get(mode_key) if stats1 and
-            stats1.modes else None %} {% set mode_data2 =
-            stats2.modes.get(mode_key) if stats2 and stats2.modes else None %}
-            {{ compare_stat_row('Wins', mode_data1, mode_data2, 'wins',
-            use_formatted=True) }} {{ compare_stat_row('Losses', mode_data1,
-            mode_data2, 'losses', use_formatted=True) }} {{
-            compare_stat_row('W/L Ratio', mode_data1, mode_data2, 'wlr',
-            is_ratio=True) }} {{ compare_stat_row('Final Kills', mode_data1,
-            mode_data2, 'final_kills', use_formatted=True) }} {{
-            compare_stat_row('Final Deaths', mode_data1, mode_data2,
-            'final_deaths', use_formatted=True) }} {{ compare_stat_row('FKDR',
-            mode_data1, mode_data2, 'fkdr', is_ratio=True) }} {{
-            compare_stat_row('Beds Broken', mode_data1, mode_data2,
-            'beds_broken', use_formatted=True) }} {{ compare_stat_row('Beds
-            Lost', mode_data1, mode_data2, 'beds_lost', use_formatted=True) }}
-            {{ compare_stat_row('BBLR', mode_data1, mode_data2, 'bblr',
-            is_ratio=True) }} {{ compare_stat_row('Kills', mode_data1,
-            mode_data2, 'kills', use_formatted=True) }} {{
-            compare_stat_row('Deaths', mode_data1, mode_data2, 'deaths',
-            use_formatted=True) }} {{ compare_stat_row('KDR', mode_data1,
-            mode_data2, 'kdr', is_ratio=True) }}
+            {% set mode_data1 = stats1.modes.get(mode_key) if stats1 and stats1.modes else None %}
+            {% set mode_data2 = stats2.modes.get(mode_key) if stats2 and stats2.modes else None %}
+            {{ compare_stat_row('Wins', mode_data1, mode_data2, 'wins', use_formatted=True) }}
+            {{ compare_stat_row('Losses', mode_data1, mode_data2, 'losses', use_formatted=True) }}
+            {{ compare_stat_row('W/L Ratio', mode_data1, mode_data2, 'wlr', is_ratio=True) }}
+            {{ compare_stat_row('Final Kills', mode_data1, mode_data2, 'final_kills', use_formatted=True) }}
+            {{ compare_stat_row('Final Deaths', mode_data1, mode_data2, 'final_deaths', use_formatted=True) }}
+            {{ compare_stat_row('FKDR Gained', mode_data1, mode_data2, 'fkdr', is_ratio=True) }}
+            {{ compare_stat_row('FKDR Session', mode_data1, mode_data2, 'fkdr_session', is_ratio=True) }}
+            {{ compare_stat_row('Beds Broken', mode_data1, mode_data2, 'beds_broken', use_formatted=True) }}
+            {{ compare_stat_row('Beds Lost', mode_data1, mode_data2, 'beds_lost', use_formatted=True) }}
+            {{ compare_stat_row('BBLR', mode_data1, mode_data2, 'bblr', is_ratio=True) }}
+            {{ compare_stat_row('Kills', mode_data1, mode_data2, 'kills', use_formatted=True) }}
+            {{ compare_stat_row('Deaths', mode_data1, mode_data2, 'deaths', use_formatted=True) }}
+            {{ compare_stat_row('KDR', mode_data1, mode_data2, 'kdr', is_ratio=True) }}
           </div>
           {% endfor %}
         </div>

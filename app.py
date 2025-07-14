@@ -114,11 +114,15 @@ def transform_scrapper_data(scraped_data):
     for mode_key, mode_data in scraped_modes.items():
         processed_mode = {}
         for key, value in mode_data.items():
+            # Always convert numerical stats to integers, ignore pre-calculated ratios from scraper
             if key not in ['wlr', 'kdr', 'fkdr', 'bblr']:
-                 processed_mode[key] = get_safe_int(value)
-            else:
-                 processed_mode[key] = value
-        
+                processed_mode[key] = get_safe_int(value)
+
+        # Recalculate all ratios to ensure consistency
+        processed_mode['wlr'] = calculate_ratio(processed_mode.get('wins'), processed_mode.get('losses'))
+        processed_mode['kdr'] = calculate_ratio(processed_mode.get('kills'), processed_mode.get('deaths'))
+        processed_mode['fkdr'] = calculate_ratio(processed_mode.get('final_kills'), processed_mode.get('final_deaths'))
+        processed_mode['bblr'] = calculate_ratio(processed_mode.get('beds_broken'), processed_mode.get('beds_lost'))
         processed_mode['win_rate'] = calculate_win_rate(processed_mode.get('wins'), processed_mode.get('games_played'))
         processed_mode['finals_per_game'] = calculate_finals_per_game(processed_mode.get('final_kills'), processed_mode.get('games_played'))
         final_modes[mode_key] = processed_mode
