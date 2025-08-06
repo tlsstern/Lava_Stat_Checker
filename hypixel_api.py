@@ -32,6 +32,10 @@ def get_player_uuid_by_current_name(username: str):
     Attempts to get UUID by current name using Mojang API first, then Hypixel API.
     Returns UUID if found and the name matches the current name, otherwise None.
     """
+    # Skip if API is disabled
+    if API_KEY.lower() == "off":
+        return None
+    
     try:
         response_mojang = requests.get(f"{UUID_URL}{username}", timeout=5)
         if response_mojang.status_code == 200:
@@ -85,6 +89,10 @@ def get_uuid_by_historical_name(username: str):
     Returns UUID and current name if a player is found but their name has changed,
     otherwise None, None.
     """
+    # Skip if API is disabled
+    if API_KEY.lower() == "off":
+        return None, None
+    
     try:
         params = {"key": API_KEY, "name": username}
         response_hypixel = requests.get(PLAYER_URL, params=params, timeout=10)
@@ -171,6 +179,10 @@ def get_player_stats_by_uuid(uuid: str):
     Fetches player stats using Hypixel API by UUID.
     Returns a dictionary of stats or an error dictionary.
     """
+    # Skip if API is disabled
+    if API_KEY.lower() == "off":
+        return {"error": "API disabled", "fetched_by": "api_disabled"}
+    
     if not uuid:
         return {"error": "Invalid UUID provided."}
 
@@ -296,25 +308,14 @@ def get_player_stats_by_uuid(uuid: str):
 
 def fetch_player_data(username: str):
     """
-    Fetches player data, checking Supabase cache first, then attempting API if enabled, then falling back to scrapper.
+    Fetches player data, attempting API first if enabled, then falling back to scrapper.
     """
-    # Check Supabase cache first
-    cached_data = supabase_handler.get_cached_stats(username, max_age_hours=1)
-    if cached_data:
-        print(f"Returning cached data from Supabase for {username}")
-        return cached_data
-    
     # Check if API is disabled
     if API_KEY.lower() == "off":
         print(f"[SCRAPER MODE] Fetching data for {username} (API disabled)...")
         scraped_data = scrapper.scrape_bwstats(username)
         scraped_data['original_search'] = username
         scraped_data['fetched_by'] = 'scrapper'
-        
-        # Save to Supabase cache
-        if not scraped_data.get('error'):
-            supabase_handler.save_stats(username, scraped_data, fetched_from='scraper')
-        
         print(f"Returning scrapper data for {username}.")
         return scraped_data
     
@@ -393,6 +394,19 @@ def fetch_multiple_player_data(usernames: list):
     """
     Fetches data for multiple players, handling potential API/scrapper fallbacks for each.
     """
+    # Check if API is disabled
+    if API_KEY.lower() == "off":
+        print(f"[SCRAPER MODE] Batch fetching {len(usernames)} users (API disabled)...")
+        scraped_results = scrapper.scrape_multiple_bwstats(usernames)
+        results = {}
+        for username in usernames:
+            scraped_data = scraped_results.get(username, scrapper.scrape_bwstats(username))
+            scraped_data['original_search'] = username
+            scraped_data['fetched_by'] = 'scrapper'
+            results[username.lower()] = scraped_data
+        print(f"Returning scrapper data for {len(usernames)} users.")
+        return results
+    
     results = {}
     api_batch = []
     scraper_batch = []
