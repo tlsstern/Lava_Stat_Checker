@@ -357,7 +357,33 @@ def fetch_multiple_player_data(usernames: list):
     Fetches data for multiple players, handling potential API/scrapper fallbacks for each.
     """
     results = {}
+    api_batch = []
+    scraper_batch = []
+    
+    # First pass: try API for all users
     for username in usernames:
-        normalized_username = username.lower()
-        results[normalized_username] = fetch_player_data(username)
+        uuid = get_player_uuid_by_current_name(username)
+        if uuid:
+            try:
+                stats = get_player_stats_by_uuid(uuid)
+                if stats and stats.get('fetched_by') == 'api' and 'error' not in stats:
+                    stats['original_search'] = username
+                    stats['name_match'] = True
+                    results[username.lower()] = stats
+                else:
+                    scraper_batch.append(username)
+            except:
+                scraper_batch.append(username)
+        else:
+            scraper_batch.append(username)
+    
+    # Batch scrape remaining users
+    if scraper_batch:
+        scraped_results = scrapper.scrape_multiple_bwstats(scraper_batch)
+        for username in scraper_batch:
+            scraped_data = scraped_results.get(username, scrapper.scrape_bwstats(username))
+            scraped_data['original_search'] = username
+            scraped_data['fetched_by'] = 'scrapper'
+            results[username.lower()] = scraped_data
+    
     return results
