@@ -17,6 +17,8 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 import threading
+import tempfile
+import uuid
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -48,6 +50,10 @@ def get_chrome_options():
     chrome_options.add_experimental_option('useAutomationExtension', False)
     chrome_options.page_load_strategy = 'eager'
     chrome_options.add_argument("--window-size=1920,1080")
+    
+    # Add unique user data directory to prevent conflicts
+    user_data_dir = os.path.join(tempfile.gettempdir(), f"chrome_profile_{uuid.uuid4().hex[:8]}")
+    chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
     
     # Additional options for containerized environments
     chrome_options.add_argument("--disable-setuid-sandbox")
