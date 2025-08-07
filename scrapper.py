@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 CACHE_DIR = "./cache"
-CACHE_DURATION = 3600 # Cache for 1 hour (3600 seconds)
+CACHE_DURATION = 900
 driver_pool = []
 driver_lock = threading.Lock()
 MAX_DRIVERS = 3
