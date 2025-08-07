@@ -83,6 +83,22 @@ def fetch_page(username, retry_count=5):
     """Fetch page using scraper with retries"""
     url = f"https://bwstats.shivam.pro/user/{username}"
     
+    # On Render, try scraping API first if configured
+    if os.environ.get('RENDER') or os.environ.get('USE_SCRAPING_API'):
+        try:
+            from scraping_api import fetch_with_api
+            logger.info(f"Attempting to fetch {username} using Scraping API")
+            html_content = fetch_with_api(url)
+            if html_content:
+                logger.info(f"Successfully fetched {username} via Scraping API")
+                return html_content
+            else:
+                logger.warning("Scraping API fetch failed or not configured")
+        except ImportError:
+            logger.debug("Scraping API module not available")
+        except Exception as e:
+            logger.error(f"Scraping API error: {e}")
+    
     # On Render, skip direct fetching if we've been rate limited before
     if os.environ.get('RENDER'):
         # Check if we should skip due to persistent rate limiting
@@ -91,7 +107,7 @@ def fetch_page(username, retry_count=5):
             if rate_limit_cache_key in scraper._rate_limited_urls:
                 last_attempt = scraper._rate_limited_urls[rate_limit_cache_key]
                 if time.time() - last_attempt < 3600:  # Skip for 1 hour
-                    logger.warning(f"Skipping fetch for {username} - Render IP is rate limited")
+                    logger.warning(f"Skipping direct fetch for {username} - Render IP is rate limited")
                     return None
         else:
             scraper._rate_limited_urls = {}
