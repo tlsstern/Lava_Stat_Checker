@@ -38,7 +38,7 @@ def get_cache_path():
 
 def get_chrome_options():
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless=new")  # Use new headless mode
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
@@ -56,23 +56,34 @@ def get_chrome_options():
     user_data_dir = os.path.join(tempfile.gettempdir(), f"chrome_profile_{unique_id}")
     chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
     
-    # Additional options for containerized environments
+    # Additional options for containerized environments (Render)
     chrome_options.add_argument("--disable-setuid-sandbox")
-    # Removed --single-process as it can cause conflicts with concurrent instances
     chrome_options.add_argument("--disable-dev-tools")
+    chrome_options.add_argument("--remote-debugging-port=9222")
+    chrome_options.add_argument("--disable-software-rasterizer")
     
+    # Check if running on Render
+    if os.environ.get('RENDER'):
+        logger.info("Running on Render, using Render-specific Chrome configuration")
+        chrome_options.add_argument("--disable-web-security")
+        chrome_options.add_argument("--disable-features=VizDisplayCompositor")
+        chrome_options.add_argument("--disable-background-networking")
+        chrome_options.add_argument("--disable-background-timer-throttling")
+        chrome_options.add_argument("--disable-renderer-backgrounding")
+        chrome_options.add_argument("--disable-features=TranslateUI")
+        
     if platform.system() == "Windows":
         chrome_options.binary_location = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
     else:
-        # Try multiple possible Chrome locations
+        # Try multiple possible Chrome locations (Render uses /usr/bin/google-chrome)
         chrome_paths = [
+            "/usr/bin/google-chrome",  # Render default location
             "/usr/bin/google-chrome-stable",
-            "/usr/bin/google-chrome",
             "/opt/google/chrome/google-chrome",
             "/usr/local/bin/google-chrome",
             "/usr/bin/chromium-browser",
             "/usr/bin/chromium",
-            "/app/.apt/usr/bin/google-chrome-stable",  # Render's apt buildpack location
+            "/app/.apt/usr/bin/google-chrome-stable",
             "/app/.apt/usr/bin/google-chrome"
         ]
         chrome_found = False
