@@ -168,13 +168,6 @@ button:active {
   box-shadow: 0 2px 5px rgba(91, 33, 182, 0.3);
 }
 
-.nerd-stats-section {
-  /* Add specific styling if needed, e.g., background, padding */
-  /* background-color: rgba(0,0,0,0.1); */
-  /* padding: 1rem; */
-  /* border-radius: 0.5rem; */
-}
-
 
 /* Utility to hide elements */
 .hidden {

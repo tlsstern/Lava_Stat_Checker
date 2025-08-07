@@ -135,6 +135,17 @@ class LavaTracker:
         fours_stats = self.extract_mode_stats(bw_stats, "four_four_")
         four_v_four_stats = self.extract_mode_stats(bw_stats, "two_four_")
         
+        # Calculate most played mode
+        mode_games = {
+            "Solo": solo_stats.get("games_played", 0),
+            "Doubles": doubles_stats.get("games_played", 0),
+            "3v3v3v3": threes_stats.get("games_played", 0),
+            "4v4v4v4": fours_stats.get("games_played", 0),
+            "4v4": four_v_four_stats.get("games_played", 0)
+        }
+        most_played_mode = max(mode_games, key=mode_games.get) if any(mode_games.values()) else "None"
+        most_played_games = mode_games[most_played_mode] if most_played_mode != "None" else 0
+        
         return {
             "player_name": player_data.get("displayname", "Unknown"),
             "level": level,
@@ -162,6 +173,8 @@ class LavaTracker:
             "winstreak": bw_stats.get("winstreak", 0),
             "finals_per_star": finals_per_star,
             "wins_per_star": wins_per_star,
+            "most_played_mode": most_played_mode,
+            "most_played_games": most_played_games,
             "solo_stats": json.dumps(solo_stats),
             "doubles_stats": json.dumps(doubles_stats),
             "threes_stats": json.dumps(threes_stats),
