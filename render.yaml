@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: lava-stat-checker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11

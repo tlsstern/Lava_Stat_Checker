@@ -49,10 +49,25 @@ def get_chrome_options():
     chrome_options.page_load_strategy = 'eager'
     chrome_options.add_argument("--window-size=1920,1080")
     
+    # Additional options for containerized environments
+    chrome_options.add_argument("--disable-setuid-sandbox")
+    chrome_options.add_argument("--single-process")
+    chrome_options.add_argument("--disable-dev-tools")
+    
     if platform.system() == "Windows":
         chrome_options.binary_location = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
     else:
-        chrome_options.binary_location = "/usr/bin/google-chrome"
+        # Try multiple possible Chrome locations
+        chrome_paths = [
+            "/usr/bin/google-chrome",
+            "/usr/bin/google-chrome-stable",
+            "/usr/bin/chromium-browser",
+            "/usr/bin/chromium"
+        ]
+        for path in chrome_paths:
+            if os.path.exists(path):
+                chrome_options.binary_location = path
+                break
     
     return chrome_options
 
