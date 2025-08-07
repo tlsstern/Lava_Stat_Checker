@@ -15,7 +15,17 @@ import threading
 # Try to use cloudscraper if available, fallback to requests
 try:
     import cloudscraper
-    scraper = cloudscraper.create_scraper()
+    # Create scraper with more aggressive browser impersonation
+    scraper = cloudscraper.create_scraper(
+        browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'desktop': True,
+            'mobile': False
+        },
+        delay=10,  # Add delay between requests
+        interpreter='nodejs'  # Use nodejs interpreter if available
+    )
     logger_msg = "Using cloudscraper for requests"
 except ImportError:
     scraper = requests.Session()
@@ -69,14 +79,27 @@ def get_cache_path():
     today_str = datetime.datetime.now().strftime("%d_%m_%Y")
     return os.path.join(CACHE_DIR, f"cache_{today_str}.json")
 
-def fetch_page(username, retry_count=3):
+def fetch_page(username, retry_count=5):
     """Fetch page using scraper with retries"""
     url = f"https://bwstats.shivam.pro/user/{username}"
+    
+    # On Render, add initial delay to avoid immediate rate limiting
+    if os.environ.get('RENDER'):
+        initial_delay = random.uniform(0.5, 2.0)
+        logger.debug(f"Running on Render, adding {initial_delay:.1f}s initial delay")
+        time.sleep(initial_delay)
     
     for attempt in range(retry_count):
         try:
             # cloudscraper handles user agents and anti-bot measures automatically
-            response = scraper.get(url, timeout=30)
+            # Add more headers for better success rate
+            headers = {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+            response = scraper.get(url, headers=headers, timeout=30)
             
             if response.status_code == 200:
                 logger.info(f"Successfully fetched page for {username}")
@@ -85,15 +108,16 @@ def fetch_page(username, retry_count=3):
                 logger.warning(f"Player not found (404): {username}")
                 return None
             elif response.status_code == 429:
-                # Rate limited - use exponential backoff
-                wait_time = (2 ** attempt) * 3 + random.uniform(1, 3)
+                # Rate limited - use longer exponential backoff on Render
+                base_wait = 5 if os.environ.get('RENDER') else 2
+                wait_time = (base_wait ** (attempt + 1)) + random.uniform(2, 5)
                 logger.warning(f"Rate limited (429) for {username}. Waiting {wait_time:.1f}s before retry {attempt + 1}/{retry_count}")
                 if attempt < retry_count - 1:
                     time.sleep(wait_time)
             else:
                 logger.warning(f"Attempt {attempt + 1} failed with status {response.status_code} for {username}")
                 if attempt < retry_count - 1:
-                    time.sleep(2 + random.uniform(0, 1))
+                    time.sleep(3 + random.uniform(1, 2))
                     
         except requests.exceptions.Timeout:
             logger.warning(f"Timeout on attempt {attempt + 1} for {username}")
@@ -392,13 +416,41 @@ def scrape_bwstats(username):
         if cached_data:
             return cached_data
     
+    # On Render, check if we should use aggressive caching due to rate limits
+    if os.environ.get('RENDER'):
+        # Try to get any cached data, even if slightly stale
+        if USE_SUPABASE_CACHE:
+            try:
+                # Get data up to 1 hour old if on Render and getting rate limited
+                result = supabase.client.rpc('get_latest_stats_by_ign', {'p_ign': username}).execute()
+                if result.data and len(result.data) > 0:
+                    stats = result.data[0]
+                    updated_at = datetime.datetime.fromisoformat(stats['updated_at'].replace('Z', '+00:00'))
+                    age_seconds = (datetime.datetime.utcnow().replace(tzinfo=updated_at.tzinfo) - updated_at).total_seconds()
+                    if age_seconds < 3600:  # 1 hour
+                        logger.info(f"Using older cached data for {username} on Render (age: {age_seconds:.0f}s)")
+                        return convert_supabase_to_scraper_format(stats)
+            except:
+                pass
+    
     # Fetch fresh data
     logger.info(f"Fetching fresh stats for {username}")
     html_content = fetch_page(username)
     
     if not html_content:
         logger.error(f"Failed to fetch page for {username}")
-        return {"error": "Failed to fetch player stats"}
+        
+        # On Render, try to return ANY cached data as last resort
+        if os.environ.get('RENDER') and USE_SUPABASE_CACHE:
+            try:
+                result = supabase.client.rpc('get_latest_stats_by_ign', {'p_ign': username}).execute()
+                if result.data and len(result.data) > 0:
+                    logger.warning(f"Returning stale cache for {username} due to fetch failure on Render")
+                    return convert_supabase_to_scraper_format(result.data[0])
+            except:
+                pass
+        
+        return {"error": "Failed to fetch player stats - try again later"}
     
     # Parse the HTML
     result = parse_stats_from_html(html_content, username)
