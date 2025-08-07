@@ -59,15 +59,25 @@ def get_chrome_options():
     else:
         # Try multiple possible Chrome locations
         chrome_paths = [
-            "/usr/bin/google-chrome",
             "/usr/bin/google-chrome-stable",
+            "/usr/bin/google-chrome",
+            "/opt/google/chrome/google-chrome",
+            "/usr/local/bin/google-chrome",
             "/usr/bin/chromium-browser",
-            "/usr/bin/chromium"
+            "/usr/bin/chromium",
+            "/app/.apt/usr/bin/google-chrome-stable",  # Render's apt buildpack location
+            "/app/.apt/usr/bin/google-chrome"
         ]
+        chrome_found = False
         for path in chrome_paths:
             if os.path.exists(path):
                 chrome_options.binary_location = path
+                chrome_found = True
+                logger.info(f"Chrome found at: {path}")
                 break
+        
+        if not chrome_found:
+            logger.warning("Chrome binary not found in standard locations. Will try without explicit path.")
     
     return chrome_options
 

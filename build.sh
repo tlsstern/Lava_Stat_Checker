@@ -1,37 +1,57 @@
 #!/usr/bin/env bash
 
-# Exit immediately if a command exits with a non-zero status.
-set -e
+# Exit on error
+set -o errexit
 
 echo "Starting Chrome installation for Render..."
 
-# Update package list
-apt-get update
-
-# Install required dependencies
-apt-get install -y \
+# Install Chrome dependencies
+apt-get update -qq
+apt-get install -y -qq --no-install-recommends \
     wget \
     gnupg \
-    unzip \
-    curl \
-    xvfb
+    ca-certificates \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libc6 \
+    libcairo2 \
+    libcups2 \
+    libdbus-1-3 \
+    libexpat1 \
+    libfontconfig1 \
+    libgbm1 \
+    libgcc1 \
+    libglib2.0-0 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libstdc++6 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    lsb-release \
+    xdg-utils
 
-# Add Google Chrome repository and key
-wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
-echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+# Download and install Chrome
+wget -q -O /tmp/google-chrome-stable_current_amd64.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+apt-get install -y -qq /tmp/google-chrome-stable_current_amd64.deb
+rm /tmp/google-chrome-stable_current_amd64.deb
 
-# Update and install Chrome
-apt-get update
-apt-get install -y google-chrome-stable
+# Verify installation
+which google-chrome-stable || echo "Chrome installation may have failed"
 
-# Install ChromeDriver
-CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1)
-echo "Chrome version: $CHROME_VERSION"
-
-# Clean up
-apt-get clean
-rm -rf /var/lib/apt/lists/*
-
-echo "Chrome installation finished."
-
-# Python dependencies are handled by Render automatically via requirements.txt
+echo "Chrome installation complete."
