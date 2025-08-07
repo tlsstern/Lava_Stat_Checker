@@ -51,13 +51,14 @@ def get_chrome_options():
     chrome_options.page_load_strategy = 'eager'
     chrome_options.add_argument("--window-size=1920,1080")
     
-    # Add unique user data directory to prevent conflicts
-    user_data_dir = os.path.join(tempfile.gettempdir(), f"chrome_profile_{uuid.uuid4().hex[:8]}")
+    # Generate unique user data directory for each instance to prevent conflicts
+    unique_id = f"{os.getpid()}_{threading.current_thread().ident}_{uuid.uuid4().hex[:8]}"
+    user_data_dir = os.path.join(tempfile.gettempdir(), f"chrome_profile_{unique_id}")
     chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
     
     # Additional options for containerized environments
     chrome_options.add_argument("--disable-setuid-sandbox")
-    chrome_options.add_argument("--single-process")
+    # Removed --single-process as it can cause conflicts with concurrent instances
     chrome_options.add_argument("--disable-dev-tools")
     
     if platform.system() == "Windows":
@@ -89,20 +90,47 @@ def get_chrome_options():
 
 def get_driver_from_pool():
     with driver_lock:
-        if driver_pool:
-            return driver_pool.pop()
-        elif len(driver_pool) < MAX_DRIVERS:
+        # Try to reuse existing driver from pool
+        while driver_pool:
+            driver = driver_pool.pop()
+            try:
+                # Check if driver is still usable
+                driver.title  # Simple check to see if driver is responsive
+                return driver
+            except:
+                # Driver is dead, close it and try next one
+                try:
+                    driver.quit()
+                except:
+                    pass
+        
+        # Create new driver if pool is empty or all drivers were dead
+        try:
             service = Service(ChromeDriverManager().install())
             driver = webdriver.Chrome(service=service, options=get_chrome_options())
             return driver
-    return None
+        except Exception as e:
+            logger.error(f"Failed to create new driver: {e}")
+            return None
 
 def return_driver_to_pool(driver):
+    if not driver:
+        return
+    
     with driver_lock:
-        if len(driver_pool) < MAX_DRIVERS:
-            driver_pool.append(driver)
-        else:
-            driver.quit()
+        try:
+            # Check if driver is still alive before adding to pool
+            driver.title  # Simple check
+            if len(driver_pool) < MAX_DRIVERS:
+                driver_pool.append(driver)
+            else:
+                driver.quit()
+        except:
+            # Driver is dead, just close it
+            try:
+                driver.quit()
+            except:
+                pass
 
 def try_requests_first(username):
     """Try to fetch data using requests first (much faster than Selenium)"""
@@ -236,9 +264,9 @@ def scrape_bwstats(username):
     try:
         driver = get_driver_from_pool()
         if not driver:
-            # Create new driver if pool is exhausted
-            service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=get_chrome_options())
+            # Failed to get driver from pool or create new one
+            logger.error(f"Could not obtain a WebDriver for {username}")
+            return {"error": "Failed to initialize browser for scraping."}
         
         url = f"https://bwstats.shivam.pro/user/{username}"
         logger.info(f"Using Selenium for {url} (fallback mode)")
