@@ -83,9 +83,6 @@ def fetch_page(username, retry_count=5):
     """Fetch page using scraper with retries"""
     url = f"https://bwstats.shivam.pro/user/{username}"
     
-    # On Render, only use scraping API as absolute last resort (to save credits)
-    # Skip this for now - we'll only use it if everything else fails
-    
     # On Render, skip direct fetching if we've been rate limited before
     if os.environ.get('RENDER'):
         # Check if we should skip due to persistent rate limiting
@@ -94,7 +91,7 @@ def fetch_page(username, retry_count=5):
             if rate_limit_cache_key in scraper._rate_limited_urls:
                 last_attempt = scraper._rate_limited_urls[rate_limit_cache_key]
                 if time.time() - last_attempt < 3600:  # Skip for 1 hour
-                    logger.warning(f"Skipping direct fetch for {username} - Render IP is rate limited")
+                    logger.warning(f"Skipping fetch for {username} - Render IP is rate limited")
                     return None
         else:
             scraper._rate_limited_urls = {}
@@ -440,24 +437,17 @@ def scrape_bwstats(username):
     
     # On Render, check if we should use aggressive caching due to rate limits
     if os.environ.get('RENDER'):
-        # Try to get any cached data, even if very old (up to 7 days)
+        # Try to get any cached data, even if slightly stale
         if USE_SUPABASE_CACHE:
             try:
-                # Get data up to 7 days old if on Render
+                # Get data up to 1 hour old if on Render and getting rate limited
                 result = supabase.client.rpc('get_latest_stats_by_ign', {'p_ign': username}).execute()
                 if result.data and len(result.data) > 0:
                     stats = result.data[0]
                     updated_at = datetime.datetime.fromisoformat(stats['updated_at'].replace('Z', '+00:00'))
                     age_seconds = (datetime.datetime.utcnow().replace(tzinfo=updated_at.tzinfo) - updated_at).total_seconds()
-                    if age_seconds < 604800:  # 7 days
-                        age_hours = age_seconds / 3600
-                        if age_hours < 1:
-                            logger.info(f"Using cached data for {username} on Render (age: {age_seconds:.0f}s)")
-                        elif age_hours < 24:
-                            logger.info(f"Using older cached data for {username} on Render (age: {age_hours:.1f} hours)")
-                        else:
-                            age_days = age_hours / 24
-                            logger.info(f"Using old cached data for {username} on Render (age: {age_days:.1f} days)")
+                    if age_seconds < 3600:  # 1 hour
+                        logger.info(f"Using older cached data for {username} on Render (age: {age_seconds:.0f}s)")
                         return convert_supabase_to_scraper_format(stats)
             except:
                 pass
