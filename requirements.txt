@@ -3,5 +3,5 @@ beautifulsoup4==4.12.2
 cloudscraper==1.2.71
 gunicorn==21.2.0
 flask==3.0.0
-supabase==2.3.0
+supabase==2.0.3
 python-dotenv==1.0.0

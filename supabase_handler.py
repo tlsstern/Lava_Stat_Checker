@@ -20,8 +20,19 @@ class SupabaseHandler:
             logger.warning("Supabase credentials not found. Cache will be disabled.")
             self.client = None
         else:
-            self.client: Client = create_client(self.url, self.key)
-            logger.info("Supabase client initialized successfully")
+            try:
+                self.client: Client = create_client(self.url, self.key)
+                logger.info("Supabase client initialized successfully")
+            except TypeError as e:
+                # Handle version compatibility issues
+                if "proxy" in str(e):
+                    logger.warning("Supabase client version incompatibility detected. Cache will be disabled.")
+                    self.client = None
+                else:
+                    raise
+            except Exception as e:
+                logger.error(f"Failed to initialize Supabase client: {e}")
+                self.client = None
     
     def get_player_uuid(self, username: str) -> Optional[str]:
         """Get player UUID from Mojang API"""
