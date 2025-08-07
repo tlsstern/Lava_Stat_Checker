@@ -3,6 +3,7 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for
 import hypixel_api
 import os
 import datetime
+from supabase_handler import supabase_handler
 
 app = Flask(__name__)
 
@@ -94,6 +95,7 @@ def transform_scrapper_data(scraped_data):
     if not scraped_data or scraped_data.get('error'):
         return scraped_data
 
+    print(f"Debug transform_scrapper_data - Input keys: {scraped_data.keys() if scraped_data else 'None'}")
     username = scraped_data.get('username')
     player_uuid = None
     if username:
@@ -109,6 +111,7 @@ def transform_scrapper_data(scraped_data):
 
     final_modes = {}
     scraped_modes = scraped_data.get('modes', {})
+    print(f"Debug: scraped_modes keys: {scraped_modes.keys()}")
     
     # First, process all modes from the scraper
     for mode_key, mode_data in scraped_modes.items():
@@ -164,7 +167,14 @@ def transform_scrapper_data(scraped_data):
         v4_stats['finals_per_game'] = calculate_finals_per_game(v4_stats.get('final_kills'), v4_stats.get('games_played'))
         final_modes['4v4'] = v4_stats
 
-    level = scraped_data.get("star")
+    level = scraped_data.get("star", 0)
+    # Try to parse level as int if it's a string
+    if isinstance(level, str):
+        try:
+            level = int(level)
+        except (ValueError, TypeError):
+            level = 0
+    
     overall_fk = final_modes.get('overall', {}).get('final_kills', 0)
     if level and overall_fk:
         final_modes.get('overall', {})['finals_per_star'] = round(overall_fk / level, 2)
@@ -177,7 +187,7 @@ def transform_scrapper_data(scraped_data):
         'most_played_gamemode': 'N/A',
         'overall': final_modes.get('overall'),
         'modes': final_modes,
-        'fetched_by': 'scrapper',
+        'fetched_by': scraped_data.get('fetched_by', 'scrapper'),  # Preserve original fetched_by
         'original_search': username,
         'last_updated': scraped_data.get('last_updated')
     }
@@ -256,7 +266,11 @@ def player_stats_page():
          print(f"App: Successfully fetched data for {username} via {result_data.get('fetched_by')}.")
          fetched_time = datetime.datetime.now()
 
-         if result_data.get('fetched_by') == 'scrapper':
+         # Check both 'scrapper' and 'scraper' for compatibility
+         if result_data.get('fetched_by') in ['scrapper', 'scraper']:
+             print(f"Debug: Transforming scraper data. Keys: {result_data.keys()}")
+             if 'modes' in result_data and 'overall' in result_data.get('modes', {}):
+                 print(f"Debug: Overall stats keys: {result_data['modes']['overall'].keys()}")
              stats_for_display = transform_scrapper_data(result_data)
          else:
              stats_for_display = result_data

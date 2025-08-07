@@ -4,3 +4,5 @@ selenium
 webdriver_manager
 gunicorn
 flask
+supabase
+python-dotenv

@@ -5,6 +5,7 @@ import re
 import traceback
 import datetime
 from config import API_KEY
+from supabase_handler import supabase_handler
 
 BASE_URL = "https://api.hypixel.net/v2"
 PLAYER_URL = f"{BASE_URL}/player"
@@ -295,8 +296,28 @@ def get_player_stats_by_uuid(uuid: str):
 
 def fetch_player_data(username: str):
     """
-    Fetches player data, attempting API first, then falling back to scrapper.
+    Fetches player data, checking Supabase cache first, then attempting API if enabled, then falling back to scrapper.
     """
+    # Check Supabase cache first
+    cached_data = supabase_handler.get_cached_stats(username, max_age_hours=1)
+    if cached_data:
+        print(f"Returning cached data from Supabase for {username}")
+        return cached_data
+    
+    # Check if API is disabled
+    if API_KEY.lower() == "off":
+        print(f"[SCRAPER MODE] Fetching data for {username} (API disabled)...")
+        scraped_data = scrapper.scrape_bwstats(username)
+        scraped_data['original_search'] = username
+        scraped_data['fetched_by'] = 'scrapper'
+        
+        # Save to Supabase cache
+        if not scraped_data.get('error'):
+            supabase_handler.save_stats(username, scraped_data, fetched_from='scraper')
+        
+        print(f"Returning scrapper data for {username}.")
+        return scraped_data
+    
     print(f"Attempting to fetch data for {username}...")
     uuid = get_player_uuid_by_current_name(username)
 
@@ -307,6 +328,10 @@ def fetch_player_data(username: str):
             if stats and stats.get('fetched_by') == 'api' and 'error' not in stats:
                  stats['original_search'] = username
                  stats['name_match'] = True
+                 
+                 # Save to Supabase cache
+                 supabase_handler.save_stats(username, stats, fetched_from='api')
+                 
                  print(f"Successfully fetched API data for {username} ({uuid}).")
                  return stats
             else:
@@ -316,6 +341,11 @@ def fetch_player_data(username: str):
                  scraped_data['fetched_by'] = 'scrapper'
                  if stats and stats.get('fetched_by') == 'api_error':
                      scraped_data['api_error_details'] = stats.get('error')
+                 
+                 # Save to Supabase cache if successful
+                 if not scraped_data.get('error'):
+                     supabase_handler.save_stats(username, scraped_data, fetched_from='scraper')
+                 
                  print(f"Returning scrapper data for {username}.")
                  return scraped_data
 
@@ -325,7 +355,12 @@ def fetch_player_data(username: str):
             scraped_data = scrapper.scrape_bwstats(username)
             scraped_data['original_search'] = username
             scraped_data['fetched_by'] = 'scrapper'
-            scraped_data['api_error_details'] = str(e) 
+            scraped_data['api_error_details'] = str(e)
+            
+            # Save to Supabase cache if successful
+            if not scraped_data.get('error'):
+                supabase_handler.save_stats(username, scraped_data, fetched_from='scraper')
+            
             print(f"Returning scrapper data for {username} after API exception.")
             return scraped_data
 
@@ -349,6 +384,8 @@ def fetch_player_data(username: str):
             scraped_data['fetched_by'] = 'scrapper'
             if 'error' not in scraped_data:
                  scraped_data['api_error_details'] = f"Player '{username}' not found via Hypixel API lookup."
+                 # Save to Supabase cache
+                 supabase_handler.save_stats(username, scraped_data, fetched_from='scraper')
             print(f"Returning scrapper data for {username} after API lookup failure.")
             return scraped_data
 
