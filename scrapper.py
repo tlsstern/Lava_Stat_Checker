@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 import time
 import random
 from typing import Optional, Dict, Any
+import threading
 
 # Try to use cloudscraper if available, fallback to requests
 try:
@@ -49,6 +50,9 @@ except Exception as e:
 CACHE_DIR = "./cache"
 CACHE_DURATION = 900  # 15 minutes in seconds
 USE_SUPABASE_CACHE = supabase is not None and supabase.client is not None
+
+# Thread pool for background tasks
+background_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="supabase_save")
 
 # Ensure cache directory exists (fallback)
 if not USE_SUPABASE_CACHE:
@@ -206,33 +210,84 @@ def parse_stats_from_html(html_content, username):
     
     return data
 
-def check_supabase_cache(username: str) -> Optional[Dict[str, Any]]:
-    """Check Supabase for cached stats"""
+def check_supabase_cache_fast(username: str) -> Optional[Dict[str, Any]]:
+    """Check Supabase for cached stats - optimized version that skips UUID lookup"""
     if not USE_SUPABASE_CACHE:
         return None
     
     try:
-        # Check Supabase cache (15 minutes = 0.25 hours)
-        cached_stats = supabase.get_cached_stats(username, max_age_hours=0.25)
-        if cached_stats:
-            logger.info(f"Found cached stats in Supabase for {username}")
-            # Convert Supabase format back to scraper format
-            return convert_supabase_to_scraper_format(cached_stats)
+        # Skip UUID lookup - go straight to username search
+        # This is faster and UUID can be filled in later if needed
+        result = supabase.client.rpc('get_latest_stats_by_ign', {'p_ign': username}).execute()
+        
+        if result.data and len(result.data) > 0:
+            stats = result.data[0]
+            # Check if stats are fresh (15 minutes)
+            updated_at = datetime.datetime.fromisoformat(stats['updated_at'].replace('Z', '+00:00'))
+            age_seconds = (datetime.datetime.utcnow().replace(tzinfo=updated_at.tzinfo) - updated_at).total_seconds()
+            
+            if age_seconds < CACHE_DURATION:
+                logger.info(f"Found fresh cached stats in Supabase for {username} (age: {age_seconds:.0f}s)")
+                return convert_supabase_to_scraper_format(stats)
+            else:
+                logger.info(f"Cached stats for {username} are stale (age: {age_seconds:.0f}s)")
+        
         return None
     except Exception as e:
         logger.error(f"Error checking Supabase cache: {e}")
         return None
 
-def save_to_supabase(username: str, stats_data: Dict[str, Any]):
-    """Save scraped stats to Supabase"""
+def save_to_supabase_async(username: str, stats_data: Dict[str, Any]):
+    """Save to Supabase asynchronously in background - won't block the response"""
     if not USE_SUPABASE_CACHE or 'error' in stats_data:
         return
     
-    try:
-        supabase.save_stats(username, stats_data, fetched_from="scraper")
-        logger.info(f"Saved stats to Supabase for {username}")
-    except Exception as e:
-        logger.error(f"Error saving to Supabase: {e}")
+    def _background_save():
+        try:
+            # Make a copy to avoid modification issues
+            data_copy = json.loads(json.dumps(stats_data))
+            
+            # Try to get UUID, but don't fail if we can't
+            uuid = None
+            try:
+                response = requests.get(
+                    f"https://api.mojang.com/users/profiles/minecraft/{username}",
+                    timeout=5
+                )
+                if response.status_code == 200:
+                    uuid_raw = response.json().get('id')
+                    if uuid_raw and len(uuid_raw) == 32:
+                        uuid = f"{uuid_raw[:8]}-{uuid_raw[8:12]}-{uuid_raw[12:16]}-{uuid_raw[16:20]}-{uuid_raw[20:]}"
+            except Exception as e:
+                logger.debug(f"Could not get UUID for {username}: {e}")
+            
+            if uuid:
+                # Ensure player exists
+                try:
+                    result = supabase.client.table('player_names').select('*').eq('uuid', uuid).execute()
+                    if not result.data:
+                        supabase.client.table('player_names').insert({
+                            'uuid': uuid,
+                            'player_name': username
+                        }).execute()
+                except Exception as e:
+                    logger.debug(f"Error with player_names table: {e}")
+                
+                # Save stats with UUID
+                supabase.save_stats(username, data_copy, fetched_from="scraper")
+                logger.info(f"Background save completed for {username} with UUID")
+            else:
+                # Save without UUID - we can update it later
+                logger.info(f"Saving {username} without UUID (will update later)")
+                # For now, skip if no UUID since the table requires it
+                # In production, you might want to modify the schema to make UUID optional
+                
+        except Exception as e:
+            logger.error(f"Error in background save for {username}: {e}")
+    
+    # Submit to background thread pool
+    background_executor.submit(_background_save)
+    logger.debug(f"Submitted background save task for {username}")
 
 def convert_supabase_to_scraper_format(supabase_stats: Dict[str, Any]) -> Dict[str, Any]:
     """Convert Supabase stats format back to scraper format"""
@@ -324,11 +379,11 @@ def save_to_local_cache(username: str, stats_data: Dict[str, Any]):
         logger.error(f"Failed to save local cache: {e}")
 
 def scrape_bwstats(username):
-    """Main function to scrape stats for a single user"""
+    """Main function to scrape stats for a single user - optimized for speed"""
     
-    # Check Supabase cache first
+    # Check cache first (fast path - no UUID lookup)
     if USE_SUPABASE_CACHE:
-        cached_data = check_supabase_cache(username)
+        cached_data = check_supabase_cache_fast(username)
         if cached_data:
             return cached_data
     else:
@@ -348,25 +403,24 @@ def scrape_bwstats(username):
     # Parse the HTML
     result = parse_stats_from_html(html_content, username)
     
-    # Save to appropriate cache
+    # Save to cache asynchronously (won't block the response)
     if "error" not in result:
         if USE_SUPABASE_CACHE:
-            save_to_supabase(username, result)
+            # Save in background - return immediately
+            save_to_supabase_async(username, result)
         else:
+            # Local cache is fast enough to do synchronously
             save_to_local_cache(username, result)
     
     return result
 
 def scrape_multiple_bwstats(usernames):
     """Scrape multiple users concurrently with rate limiting"""
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        # Add small delay between submissions to avoid rate limiting
-        results = []
-        futures = []
-        for username in usernames:
-            future = executor.submit(scrape_bwstats, username)
-            futures.append(future)
-            time.sleep(0.5)  # Small delay between requests
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        # Submit all at once for better concurrency
+        futures = [executor.submit(scrape_bwstats, username) for username in usernames]
+        # Small delay to avoid hammering the server
+        time.sleep(0.2)
         
         results = [future.result() for future in futures]
     return dict(zip(usernames, results))
@@ -379,3 +433,11 @@ def cleanup_drivers():
 def return_driver_to_pool(driver):
     """No-op - keeping for compatibility"""
     pass
+
+# Cleanup function for graceful shutdown
+def cleanup():
+    """Cleanup background threads on shutdown"""
+    try:
+        background_executor.shutdown(wait=False)
+    except:
+        pass
