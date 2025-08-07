@@ -1,96 +1,4 @@
 {
-    "lava999": {
-        "username": "lava999",
-        "modes": {
-            "overall": {
-                "games_played": "6,911",
-                "wins": "3,636",
-                "losses": "3,239",
-                "wlr": "1.12",
-                "kills": "15,453",
-                "deaths": "23,793",
-                "kdr": "0.65",
-                "final_kills": "17,464",
-                "final_deaths": "3,389",
-                "fkdr": "5.15",
-                "winstreak": "0",
-                "items_purchased": "240,875",
-                "beds_broken": "7,964",
-                "beds_lost": "3,908",
-                "bblr": "2.04"
-            },
-            "solos": {
-                "games_played": "411",
-                "wins": "88",
-                "losses": "319",
-                "wlr": "0.28",
-                "kills": "549",
-                "deaths": "946",
-                "kdr": "0.58",
-                "final_kills": "428",
-                "final_deaths": "308",
-                "fkdr": "1.39",
-                "winstreak": "0",
-                "items_purchased": "10,415",
-                "beds_broken": "484",
-                "beds_lost": "350",
-                "bblr": "1.38"
-            },
-            "doubles": {
-                "games_played": "4,584",
-                "wins": "2,242",
-                "losses": "2,325",
-                "wlr": "0.96",
-                "kills": "11,537",
-                "deaths": "17,380",
-                "kdr": "0.66",
-                "final_kills": "12,840",
-                "final_deaths": "2,446",
-                "fkdr": "5.25",
-                "winstreak": "0",
-                "items_purchased": "181,388",
-                "beds_broken": "6,356",
-                "beds_lost": "2,833",
-                "bblr": "2.24"
-            },
-            "threes": {
-                "games_played": "929",
-                "wins": "582",
-                "losses": "340",
-                "wlr": "1.71",
-                "kills": "1,810",
-                "deaths": "2,839",
-                "kdr": "0.64",
-                "final_kills": "1,887",
-                "final_deaths": "354",
-                "fkdr": "5.33",
-                "winstreak": "0",
-                "items_purchased": "23,310",
-                "beds_broken": "613",
-                "beds_lost": "395",
-                "bblr": "1.55"
-            },
-            "fours": {
-                "games_played": "880",
-                "wins": "630",
-                "losses": "243",
-                "wlr": "2.59",
-                "kills": "1,451",
-                "deaths": "2,489",
-                "kdr": "0.58",
-                "final_kills": "2,199",
-                "final_deaths": "270",
-                "fkdr": "8.14",
-                "winstreak": "0",
-                "items_purchased": "24,270",
-                "beds_broken": "485",
-                "beds_lost": "319",
-                "bblr": "1.52"
-            }
-        },
-        "star": 493,
-        "last_updated": "2025-08-07T06:07:11.408920"
-    },
     "wlnks": {
         "username": "wlnks",
         "modes": {
@@ -181,7 +89,7 @@
             }
         },
         "star": 3224,
-        "last_updated": "2025-08-07T06:07:24.041867"
+        "last_updated": "2025-08-07T06:59:44.367023"
     },
     "tiltings": {
         "username": "tiltings",
@@ -273,7 +181,7 @@
             }
         },
         "star": 3642,
-        "last_updated": "2025-08-07T06:32:36.465928"
+        "last_updated": "2025-08-07T06:59:59.634336"
     },
     "vemmi": {
         "username": "vemmi",
@@ -365,7 +273,99 @@
             }
         },
         "star": 1245,
-        "last_updated": "2025-08-07T06:49:51.205082"
+        "last_updated": "2025-08-07T07:00:03.365039"
+    },
+    "lava999": {
+        "username": "lava999",
+        "modes": {
+            "overall": {
+                "games_played": "6,911",
+                "wins": "3,636",
+                "losses": "3,239",
+                "wlr": "1.12",
+                "kills": "15,453",
+                "deaths": "23,793",
+                "kdr": "0.65",
+                "final_kills": "17,464",
+                "final_deaths": "3,389",
+                "fkdr": "5.15",
+                "winstreak": "0",
+                "items_purchased": "240,875",
+                "beds_broken": "7,964",
+                "beds_lost": "3,908",
+                "bblr": "2.04"
+            },
+            "solos": {
+                "games_played": "411",
+                "wins": "88",
+                "losses": "319",
+                "wlr": "0.28",
+                "kills": "549",
+                "deaths": "946",
+                "kdr": "0.58",
+                "final_kills": "428",
+                "final_deaths": "308",
+                "fkdr": "1.39",
+                "winstreak": "0",
+                "items_purchased": "10,415",
+                "beds_broken": "484",
+                "beds_lost": "350",
+                "bblr": "1.38"
+            },
+            "doubles": {
+                "games_played": "4,584",
+                "wins": "2,242",
+                "losses": "2,325",
+                "wlr": "0.96",
+                "kills": "11,537",
+                "deaths": "17,380",
+                "kdr": "0.66",
+                "final_kills": "12,840",
+                "final_deaths": "2,446",
+                "fkdr": "5.25",
+                "winstreak": "0",
+                "items_purchased": "181,388",
+                "beds_broken": "6,356",
+                "beds_lost": "2,833",
+                "bblr": "2.24"
+            },
+            "threes": {
+                "games_played": "929",
+                "wins": "582",
+                "losses": "340",
+                "wlr": "1.71",
+                "kills": "1,810",
+                "deaths": "2,839",
+                "kdr": "0.64",
+                "final_kills": "1,887",
+                "final_deaths": "354",
+                "fkdr": "5.33",
+                "winstreak": "0",
+                "items_purchased": "23,310",
+                "beds_broken": "613",
+                "beds_lost": "395",
+                "bblr": "1.55"
+            },
+            "fours": {
+                "games_played": "880",
+                "wins": "630",
+                "losses": "243",
+                "wlr": "2.59",
+                "kills": "1,451",
+                "deaths": "2,489",
+                "kdr": "0.58",
+                "final_kills": "2,199",
+                "final_deaths": "270",
+                "fkdr": "8.14",
+                "winstreak": "0",
+                "items_purchased": "24,270",
+                "beds_broken": "485",
+                "beds_lost": "319",
+                "bblr": "1.52"
+            }
+        },
+        "star": 493,
+        "last_updated": "2025-08-07T07:00:10.128577"
     },
     "surgers": {
         "username": "surgers",
@@ -457,7 +457,7 @@
             }
         },
         "star": 53,
-        "last_updated": "2025-08-07T06:50:36.269429"
+        "last_updated": "2025-08-07T07:00:16.934901"
     },
     "heavymonkey": {
         "username": "HEAVYMONKEY",
@@ -549,6 +549,6 @@
             }
         },
         "star": 22,
-        "last_updated": "2025-08-07T06:50:45.986251"
+        "last_updated": "2025-08-07T07:00:29.710018"
     }
 }

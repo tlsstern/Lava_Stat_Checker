@@ -39,28 +39,27 @@ class SupabaseHandler:
             logger.error(f"Error fetching UUID for {username}: {e}")
             return None
     
-    def ensure_player_exists(self, uuid: str, username: str, category: str = "bedwars"):
-        """Ensure player exists in players table"""
+    def ensure_player_exists(self, uuid: str, username: str):
+        """Ensure player exists in player_names table"""
         if not self.client:
             return
         
         try:
-            # Check if player exists
-            result = self.client.table('players').select('*').eq('uuid', uuid).execute()
+            # Check if player exists in player_names table
+            result = self.client.table('player_names').select('*').eq('uuid', uuid).execute()
             
             if not result.data:
                 # Insert new player
-                self.client.table('players').insert({
+                self.client.table('player_names').insert({
                     'uuid': uuid,
-                    'player_name': username,
-                    'category': category
+                    'player_name': username
                 }).execute()
                 logger.info(f"Created new player record for {username} ({uuid})")
             else:
                 # Update player name if changed
                 current_name = result.data[0].get('player_name')
                 if current_name != username:
-                    self.client.table('players').update({
+                    self.client.table('player_names').update({
                         'player_name': username,
                         'updated_at': datetime.utcnow().isoformat()
                     }).eq('uuid', uuid).execute()
@@ -109,7 +108,7 @@ class SupabaseHandler:
                 logger.warning(f"Could not get UUID for {username}, skipping cache save")
                 return
             
-            # Ensure player exists
+            # Ensure player exists in player_names table
             self.ensure_player_exists(uuid, username)
             
             # Prepare stats record
@@ -185,43 +184,6 @@ class SupabaseHandler:
         except Exception as e:
             logger.error(f"Error saving stats to Supabase: {e}")
     
-    def save_ping_data(self, uuid: str, ping_data: Dict[str, Any]):
-        """Save ping data to Supabase"""
-        if not self.client:
-            return
-        
-        try:
-            ping_record = {
-                'player_uuid': uuid,
-                'last_ping_string': ping_data.get('last_ping_string'),
-                'last_ping_minutes': ping_data.get('last_ping_minutes'),
-                'unix_timestamp': ping_data.get('unix_timestamp'),
-                'average_ping': ping_data.get('average_ping')
-            }
-            
-            self.client.table('pings').insert(ping_record).execute()
-            logger.info(f"Saved ping data for UUID {uuid}")
-        except Exception as e:
-            logger.error(f"Error saving ping data: {e}")
-    
-    def save_client_tag(self, uuid: str, tag_data: Dict[str, Any]):
-        """Save client tag data to Supabase"""
-        if not self.client:
-            return
-        
-        try:
-            tag_record = {
-                'player_uuid': uuid,
-                'client_tag_name': tag_data.get('client_tag_name'),
-                'client_tag_color': tag_data.get('client_tag_color'),
-                'last_ping_string': tag_data.get('last_ping_string'),
-                'last_ping_minutes': tag_data.get('last_ping_minutes')
-            }
-            
-            self.client.table('client_tags').insert(tag_record).execute()
-            logger.info(f"Saved client tag for UUID {uuid}")
-        except Exception as e:
-            logger.error(f"Error saving client tag: {e}")
     
     def _calculate_ratio(self, numerator: int, denominator: int) -> float:
         """Calculate ratio safely"""
