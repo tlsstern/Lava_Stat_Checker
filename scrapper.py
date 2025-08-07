@@ -83,8 +83,19 @@ def fetch_page(username, retry_count=5):
     """Fetch page using scraper with retries"""
     url = f"https://bwstats.shivam.pro/user/{username}"
     
-    # On Render, add initial delay to avoid immediate rate limiting
+    # On Render, skip direct fetching if we've been rate limited before
     if os.environ.get('RENDER'):
+        # Check if we should skip due to persistent rate limiting
+        rate_limit_cache_key = f"rate_limited_{url}"
+        if hasattr(scraper, '_rate_limited_urls'):
+            if rate_limit_cache_key in scraper._rate_limited_urls:
+                last_attempt = scraper._rate_limited_urls[rate_limit_cache_key]
+                if time.time() - last_attempt < 3600:  # Skip for 1 hour
+                    logger.warning(f"Skipping fetch for {username} - Render IP is rate limited")
+                    return None
+        else:
+            scraper._rate_limited_urls = {}
+        
         initial_delay = random.uniform(0.5, 2.0)
         logger.debug(f"Running on Render, adding {initial_delay:.1f}s initial delay")
         time.sleep(initial_delay)
@@ -108,8 +119,16 @@ def fetch_page(username, retry_count=5):
                 logger.warning(f"Player not found (404): {username}")
                 return None
             elif response.status_code == 429:
-                # Rate limited - use longer exponential backoff on Render
-                base_wait = 5 if os.environ.get('RENDER') else 2
+                # On Render, mark this URL as rate limited and stop trying
+                if os.environ.get('RENDER'):
+                    if not hasattr(scraper, '_rate_limited_urls'):
+                        scraper._rate_limited_urls = {}
+                    scraper._rate_limited_urls[f"rate_limited_{url}"] = time.time()
+                    logger.error(f"Render IP is rate limited for {username}. Will use cache only for 1 hour.")
+                    return None  # Don't retry, just use cache
+                
+                # Rate limited - use longer exponential backoff on local
+                base_wait = 2
                 wait_time = (base_wait ** (attempt + 1)) + random.uniform(2, 5)
                 logger.warning(f"Rate limited (429) for {username}. Waiting {wait_time:.1f}s before retry {attempt + 1}/{retry_count}")
                 if attempt < retry_count - 1:
@@ -450,7 +469,10 @@ def scrape_bwstats(username):
             except:
                 pass
         
-        return {"error": "Failed to fetch player stats - try again later"}
+        if os.environ.get('RENDER'):
+            return {"error": "Stats temporarily unavailable - please check back later or try a different player"}
+        else:
+            return {"error": "Failed to fetch player stats - try again later"}
     
     # Parse the HTML
     result = parse_stats_from_html(html_content, username)
