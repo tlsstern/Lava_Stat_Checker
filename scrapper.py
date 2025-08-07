@@ -3,207 +3,156 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import logging
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 import datetime
-import platform
 import json
 import os
-import time
 from concurrent.futures import ThreadPoolExecutor
-import threading
-import tempfile
-import uuid
+import time
+import random
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 CACHE_DIR = "./cache"
-CACHE_DURATION = 900
-driver_pool = []
-driver_lock = threading.Lock()
-MAX_DRIVERS = 3
+CACHE_DURATION = 900  # 15 minutes
 
 # Ensure cache directory exists
 os.makedirs(CACHE_DIR, exist_ok=True)
+
+# Create a session for connection pooling
+session = requests.Session()
+session.headers.update({
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'DNT': '1',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Cache-Control': 'max-age=0'
+})
 
 def get_cache_path():
     today_str = datetime.datetime.now().strftime("%d_%m_%Y")
     return os.path.join(CACHE_DIR, f"cache_{today_str}.json")
 
-def get_chrome_options():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")  # Use new headless mode
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--disable-extensions")
-    chrome_options.add_argument("--disable-images")
-    chrome_options.add_argument("--disable-javascript")
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
-    chrome_options.add_experimental_option('useAutomationExtension', False)
-    chrome_options.page_load_strategy = 'eager'
-    chrome_options.add_argument("--window-size=1920,1080")
+def fetch_page(username, retry_count=5):
+    """Fetch page using requests with retries and different user agents"""
+    url = f"https://bwstats.shivam.pro/user/{username}"
     
-    # Generate unique user data directory for each instance to prevent conflicts
-    unique_id = f"{os.getpid()}_{threading.current_thread().ident}_{uuid.uuid4().hex[:8]}"
-    user_data_dir = os.path.join(tempfile.gettempdir(), f"chrome_profile_{unique_id}")
-    chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
+    user_agents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0'
+    ]
     
-    # Additional options for containerized environments (Render)
-    chrome_options.add_argument("--disable-setuid-sandbox")
-    chrome_options.add_argument("--disable-dev-tools")
-    chrome_options.add_argument("--remote-debugging-port=9222")
-    chrome_options.add_argument("--disable-software-rasterizer")
-    
-    # Check if running on Render
-    if os.environ.get('RENDER'):
-        logger.info("Running on Render, using Render-specific Chrome configuration")
-        chrome_options.add_argument("--disable-web-security")
-        chrome_options.add_argument("--disable-features=VizDisplayCompositor")
-        chrome_options.add_argument("--disable-background-networking")
-        chrome_options.add_argument("--disable-background-timer-throttling")
-        chrome_options.add_argument("--disable-renderer-backgrounding")
-        chrome_options.add_argument("--disable-features=TranslateUI")
-        
-    if platform.system() == "Windows":
-        chrome_options.binary_location = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-    else:
-        # Try multiple possible Chrome locations (Render uses /usr/bin/google-chrome)
-        chrome_paths = [
-            "/usr/bin/google-chrome",  # Render default location
-            "/usr/bin/google-chrome-stable",
-            "/opt/google/chrome/google-chrome",
-            "/usr/local/bin/google-chrome",
-            "/usr/bin/chromium-browser",
-            "/usr/bin/chromium",
-            "/app/.apt/usr/bin/google-chrome-stable",
-            "/app/.apt/usr/bin/google-chrome"
-        ]
-        chrome_found = False
-        for path in chrome_paths:
-            if os.path.exists(path):
-                chrome_options.binary_location = path
-                chrome_found = True
-                logger.info(f"Chrome found at: {path}")
-                break
-        
-        if not chrome_found:
-            logger.warning("Chrome binary not found in standard locations. Will try without explicit path.")
-    
-    return chrome_options
-
-def get_driver_from_pool():
-    with driver_lock:
-        # Try to reuse existing driver from pool
-        while driver_pool:
-            driver = driver_pool.pop()
-            try:
-                # Check if driver is still usable
-                driver.title  # Simple check to see if driver is responsive
-                return driver
-            except:
-                # Driver is dead, close it and try next one
-                try:
-                    driver.quit()
-                except:
-                    pass
-        
-        # Create new driver if pool is empty or all drivers were dead
+    for attempt in range(retry_count):
         try:
-            service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=get_chrome_options())
-            return driver
-        except Exception as e:
-            logger.error(f"Failed to create new driver: {e}")
-            return None
-
-def return_driver_to_pool(driver):
-    if not driver:
-        return
-    
-    with driver_lock:
-        try:
-            # Check if driver is still alive before adding to pool
-            driver.title  # Simple check
-            if len(driver_pool) < MAX_DRIVERS:
-                driver_pool.append(driver)
-            else:
-                driver.quit()
-        except:
-            # Driver is dead, just close it
-            try:
-                driver.quit()
-            except:
-                pass
-
-def try_requests_first(username):
-    """Try to fetch data using requests first (much faster than Selenium)"""
-    try:
-        url = f"https://bwstats.shivam.pro/user/{username}"
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        
-        response = requests.get(url, headers=headers, timeout=5)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
+            # Use session with rotating user agents
+            headers = {'User-Agent': random.choice(user_agents)}
             
-            # Check if we got the full page with stats
-            table = soup.find('table')
-            if table:
-                logger.info(f"Successfully fetched {username} data with requests (fast mode)")
-                return parse_stats_from_soup(soup, username)
-        
-        return None
-    except Exception as e:
-        logger.debug(f"Requests method failed for {username}, will use Selenium: {e}")
-        return None
+            response = session.get(url, headers=headers, timeout=20)
+            
+            if response.status_code == 200:
+                logger.info(f"Successfully fetched page for {username}")
+                return response.text
+            elif response.status_code == 404:
+                logger.warning(f"Player not found (404): {username}")
+                return None
+            elif response.status_code == 429:
+                # Rate limited - use longer exponential backoff
+                wait_time = (3 ** attempt) * 2 + random.uniform(0, 2)
+                logger.warning(f"Rate limited (429) for {username}. Waiting {wait_time:.1f}s before retry {attempt + 1}/{retry_count}")
+                if attempt < retry_count - 1:
+                    time.sleep(wait_time)
+            else:
+                logger.warning(f"Attempt {attempt + 1} failed with status {response.status_code} for {username}")
+                if attempt < retry_count - 1:
+                    time.sleep(3 + random.uniform(0, 2))
+                    
+        except requests.exceptions.Timeout:
+            logger.warning(f"Timeout on attempt {attempt + 1} for {username}")
+            if attempt < retry_count - 1:
+                time.sleep(5)
+        except Exception as e:
+            logger.error(f"Error on attempt {attempt + 1} for {username}: {e}")
+            if attempt < retry_count - 1:
+                time.sleep(5)
+    
+    logger.error(f"All {retry_count} attempts failed for {username}")
+    return None
 
-def parse_stats_from_soup(soup, username):
-    """Parse stats from BeautifulSoup object"""
+def parse_stats_from_html(html_content, username):
+    """Parse stats from HTML content"""
+    soup = BeautifulSoup(html_content, 'html.parser')
+    
+    # Check for player not found
+    if "Player not found" in html_content:
+        logger.warning(f"Player not found: {username}")
+        return {"error": "Player not found"}
+    
     data = {'username': username, 'modes': {}}
     
+    # Find the stats table
     table = soup.find('table')
     if not table:
+        # Try to find table with specific class or id if direct search fails
+        table = soup.find('table', class_='stats-table') or soup.find('div', class_='stats').find('table') if soup.find('div', class_='stats') else None
+        
+    if not table:
+        logger.error(f"Stats table not found for {username}")
         return {"error": "Stats table not found"}
     
     rows = table.find_all('tr')
     if not rows:
         return {"error": "Table has no rows"}
     
+    # Parse header to get game modes
     header_cells = rows[0].find_all(['th', 'td'])
     modes_list = [cell.get_text(strip=True) for cell in header_cells[1:]] 
     
     mode_key_map = {
-        'Overall': 'overall', 'Solo': 'solos', 'Doubles': 'doubles', 
-        '3v3v3v3': 'threes', '4v4v4v4': 'fours', '4v4': '4v4'
+        'Overall': 'overall', 
+        'Solo': 'solos', 
+        'Doubles': 'doubles', 
+        '3v3v3v3': 'threes', 
+        '4v4v4v4': 'fours', 
+        '4v4': '4v4'
     }
     
+    # Initialize mode dictionaries
     for mode_name in modes_list:
         mode_key = mode_key_map.get(mode_name)
         if mode_key:
             data['modes'][mode_key] = {}
     
+    # Map stat names to keys
     stat_key_map = {
-        'Games Played': 'games_played', 'Wins': 'wins', 'Losses': 'losses',
-        'Win/Loss Ratio': 'wlr', 'Kills': 'kills', 'Deaths': 'deaths',
-        'K/D Ratio (KDR)': 'kdr', 'Final Kills': 'final_kills',
-        'Final Deaths': 'final_deaths', 'Final K/D Ratio (FKDR)': 'fkdr',
-        'Beds Broken': 'beds_broken', 'Beds Lost': 'beds_lost',
-        'Beds B/L Ratio (BBLR)': 'bblr', 'Winstreak': 'winstreak',
+        'Games Played': 'games_played',
+        'Wins': 'wins',
+        'Losses': 'losses',
+        'Win/Loss Ratio': 'wlr',
+        'Kills': 'kills',
+        'Deaths': 'deaths',
+        'K/D Ratio (KDR)': 'kdr',
+        'Final Kills': 'final_kills',
+        'Final Deaths': 'final_deaths',
+        'Final K/D Ratio (FKDR)': 'fkdr',
+        'Beds Broken': 'beds_broken',
+        'Beds Lost': 'beds_lost',
+        'Beds B/L Ratio (BBLR)': 'bblr',
+        'Winstreak': 'winstreak',
         'Items Purchased': 'items_purchased'
     }
     
+    # Parse stats rows
     for row in rows[1:]:
         cells = row.find_all('td')
-        if not cells: continue
+        if not cells:
+            continue
         
         stat_name_raw = cells[0].get_text(strip=True)
         stat_key = stat_key_map.get(stat_name_raw)
@@ -214,35 +163,46 @@ def parse_stats_from_soup(soup, username):
                     mode_name = modes_list[i]
                     mode_key = mode_key_map.get(mode_name)
                     if mode_key and mode_key in data['modes']:
-                        data['modes'][mode_key][stat_key] = value_cell.get_text(strip=True)
+                        value = value_cell.get_text(strip=True)
+                        data['modes'][mode_key][stat_key] = value
     
+    # Try to extract star level from title
     title_elem = soup.find('title')
     if title_elem:
         title_text = title_elem.text
-        match = re.search(r'\b(\d+)\b', title_text, re.I)
+        # Look for star level in title (e.g., "100✫ username - BedWars Stats")
+        match = re.search(r'\b(\d+)[✫⭐]\b|\b(\d+)\s*star', title_text, re.I)
         if match:
-            data["star"] = int(match.group(1))
+            star_value = match.group(1) or match.group(2)
+            data["star"] = int(star_value)
+        else:
+            # Try to find star level elsewhere in the page
+            star_elem = soup.find(text=re.compile(r'\d+[✫⭐]'))
+            if star_elem:
+                match = re.search(r'(\d+)[✫⭐]', star_elem)
+                if match:
+                    data["star"] = int(match.group(1))
     
     data['last_updated'] = datetime.datetime.utcnow().isoformat()
+    data['fetched_by'] = 'scrapper'
+    
     return data
 
 def scrape_bwstats(username):
+    """Main function to scrape stats for a single user"""
     cache_path = get_cache_path()
     all_cached_data = {}
 
-    # Load existing cache data if available
+    # Load existing cache
     if os.path.exists(cache_path):
         try:
             with open(cache_path, 'r') as f:
                 all_cached_data = json.load(f)
-        except json.JSONDecodeError as e:
-            logger.warning(f"Corrupted daily cache file: {e}. Starting with empty cache.")
-            all_cached_data = {} # Start fresh if corrupted
-        except Exception as e:
-            logger.warning(f"Error reading daily cache file: {e}. Starting with empty cache.")
+        except (json.JSONDecodeError, Exception) as e:
+            logger.warning(f"Error reading cache file: {e}. Starting with empty cache.")
             all_cached_data = {}
 
-    # Check for specific user's cached data
+    # Check cache for user
     user_cached_data = all_cached_data.get(username.lower())
     if user_cached_data:
         last_updated_str = user_cached_data.get('last_updated')
@@ -255,74 +215,50 @@ def scrape_bwstats(username):
                 else:
                     logger.info(f"Cached data for {username} is stale. Re-scraping.")
             except ValueError:
-                logger.warning(f"Invalid 'last_updated' timestamp for {username}. Re-scraping.")
-        else:
-            logger.warning(f"Cached data for {username} missing 'last_updated' timestamp. Re-scraping.")
+                logger.warning(f"Invalid timestamp for {username}. Re-scraping.")
 
-    # Try fast method first
-    result = try_requests_first(username)
-    if result and "error" not in result:
-        # Save to cache before returning
-        cache_path = get_cache_path()
-        all_cached_data[username.lower()] = result
-        with open(cache_path, 'w') as f:
-            json.dump(all_cached_data, f, indent=4)
-        logger.info(f"Saved scraped data to cache for {username} (fast mode)")
-        return result
+    # Fetch fresh data
+    logger.info(f"Fetching stats for {username}")
+    html_content = fetch_page(username)
     
-    # Fallback to Selenium if requests failed
-    driver = None
-    try:
-        driver = get_driver_from_pool()
-        if not driver:
-            # Failed to get driver from pool or create new one
-            logger.error(f"Could not obtain a WebDriver for {username}")
-            return {"error": "Failed to initialize browser for scraping."}
-        
-        url = f"https://bwstats.shivam.pro/user/{username}"
-        logger.info(f"Using Selenium for {url} (fallback mode)")
-        driver.get(url)
-
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.TAG_NAME, "table"))
-        )
-        
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-
-        # Check for player not found
-        if "Player not found" in driver.page_source:
-            logger.warning(f"Player not found on bwstats: {username}")
-            return {"error": "Player not found"}
-        
-        data = parse_stats_from_soup(soup, username)
-        if "error" in data:
-            return data
-
-        # Save to cache before returning
-        data['last_updated'] = datetime.datetime.utcnow().isoformat()
-        all_cached_data[username.lower()] = data
-        with open(cache_path, 'w') as f:
-            json.dump(all_cached_data, f, indent=4)
-        logger.info(f"Saved scraped data to cache for {username}")
-
-        return data
-
-    except Exception as e:
-        logger.error(f"An error occurred while scraping bwstats for {username}: {e}", exc_info=True)
-        return {"error": "Failed to scrape player stats."}
-    finally:
-        if driver:
-            return_driver_to_pool(driver)
+    if not html_content:
+        logger.error(f"Failed to fetch page for {username}")
+        return {"error": "Failed to fetch player stats"}
+    
+    # Parse the HTML
+    result = parse_stats_from_html(html_content, username)
+    
+    # Save to cache if successful
+    if "error" not in result:
+        all_cached_data[username.lower()] = result
+        try:
+            with open(cache_path, 'w') as f:
+                json.dump(all_cached_data, f, indent=4)
+            logger.info(f"Saved data to cache for {username}")
+        except Exception as e:
+            logger.error(f"Failed to save cache: {e}")
+    
+    return result
 
 def scrape_multiple_bwstats(usernames):
-    """Scrape multiple users concurrently for better performance"""
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        results = list(executor.map(scrape_bwstats, usernames))
+    """Scrape multiple users concurrently with rate limiting"""
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        # Add small delay between submissions to avoid rate limiting
+        results = []
+        futures = []
+        for username in usernames:
+            future = executor.submit(scrape_bwstats, username)
+            futures.append(future)
+            time.sleep(0.5)  # Small delay between requests
+        
+        results = [future.result() for future in futures]
     return dict(zip(usernames, results))
 
+# Compatibility functions for cleanup (no-op since we don't use drivers)
 def cleanup_drivers():
-    """Clean up driver pool when done"""
-    with driver_lock:
-        while driver_pool:
-            driver = driver_pool.pop()
-            driver.quit()
+    """No cleanup needed - keeping for compatibility"""
+    pass
+
+def return_driver_to_pool(driver):
+    """No-op - keeping for compatibility"""
+    pass
